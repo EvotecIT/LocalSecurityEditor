@@ -21,7 +21,7 @@
 
 ## Description
 
-.NET library for managing local security policy (User Rights Assignment).
+.NET library for managing local security policy (User Rights Assignment). This library was written to use in PowerShell Module [SecurityPolicy](https://github.com/EvotecIT/SecurityPolicy) providing easy way to manage local security policy.
 
 ### Supported User Rights Assignement
 
