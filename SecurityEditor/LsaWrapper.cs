@@ -258,6 +258,7 @@ namespace SecurityEditor {
             throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
         }
 
+
         public void RemovePrivileges(string account, UserRightsAssignment privilege) {
             IntPtr pSid = GetSIDInformation(account);
             LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
@@ -273,9 +274,17 @@ namespace SecurityEditor {
             if ((ret == STATUS_INSUFFICIENT_RESOURCES) || (ret == STATUS_NO_MEMORY)) {
                 throw new OutOfMemoryException();
             }
+            if (ret == 3221225485) {
+                throw new Exception("Account " + account + " couldn't be found.");
+            }
+
             throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
         }
 
+
+        /// <summary>
+        /// Dispose LsaWrapper
+        /// </summary>
         public void Dispose() {
             if (lsaHandle != IntPtr.Zero) {
                 Win32Sec.LsaClose(lsaHandle);

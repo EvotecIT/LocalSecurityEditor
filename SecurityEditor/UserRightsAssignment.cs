@@ -1,4 +1,9 @@
 ﻿namespace SecurityEditor {
+    /// <summary>
+    /// List of constants used for UserRightsAssignment
+    /// Each user right has a constant name and a Group Policy name associated with it.
+    /// The constant names are used when referring to the user right in log events.
+    /// </summary>
     public enum UserRightsAssignment {
         SeTrustedCredManAccessPrivilege,
         SeNetworkLogonRight,
