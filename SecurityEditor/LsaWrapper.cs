@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Management;
-using System.Runtime.CompilerServices;
 using System.ComponentModel;
 using LSA_HANDLE = System.IntPtr;
 
@@ -149,7 +146,7 @@ namespace SecurityEditor {
             }
 
             LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
-            for (int i = 0, elemOffs = (int)buffer; i < count; i++) {
+            for (Int64 i = 0, elemOffs = (Int64)buffer; i < count; i++) {
                 lsaInfo[i] = (LSA_ENUMERATION_INFORMATION)Marshal.PtrToStructure((IntPtr)elemOffs, typeof(LSA_ENUMERATION_INFORMATION));
                 elemOffs += Marshal.SizeOf(typeof(LSA_ENUMERATION_INFORMATION));
             }
@@ -184,11 +181,11 @@ namespace SecurityEditor {
 
             // Following code also fetches Domains and associates domains and usernames
             string[] retNames = new string[count];
-            List<int> currentDomain = new List<int>();
+            List<Int64> currentDomain = new List<Int64>();
             int domainCount = 0;
 
             LSA_TRANSLATED_NAME[] lsaNames = new LSA_TRANSLATED_NAME[count];
-            for (int i = 0, elemOffs = (int)names; i < count; i++) {
+            for (Int64 i = 0, elemOffs = (Int64)names; i < count; i++) {
                 lsaNames[i] = (LSA_TRANSLATED_NAME)Marshal.PtrToStructure((LSA_HANDLE)elemOffs, typeof(LSA_TRANSLATED_NAME));
                 elemOffs += Marshal.SizeOf(typeof(LSA_TRANSLATED_NAME));
 
@@ -208,7 +205,7 @@ namespace SecurityEditor {
             LSA_REFERENCED_DOMAIN_LIST[] lsaDomainNames = new LSA_REFERENCED_DOMAIN_LIST[count];
             //Error: LSA_REFERENCED_DOMAIN_LIST is a structure, not an array
 
-            for (int i = 0, elemOffs = (int)domains; i < count; i++)
+            for (Int64 i = 0, elemOffs = (Int64)domains; i < count; i++)
             //Error: not necessary
             {
                 lsaDomainNames[i] = (LSA_REFERENCED_DOMAIN_LIST)Marshal.PtrToStructure((LSA_HANDLE)elemOffs, typeof(LSA_REFERENCED_DOMAIN_LIST));
@@ -218,7 +215,7 @@ namespace SecurityEditor {
             LSA_TRUST_INFORMATION[] lsaDomainName = new LSA_TRUST_INFORMATION[count];
             string[] domainNames = new string[domainCount];
 
-            for (int i = 0, elemOffs = (int)lsaDomainNames[i].Domains; i < domainCount; i++) {
+            for (Int64 i = 0, elemOffs = (Int64)lsaDomainNames[i].Domains; i < domainCount; i++) {
                 lsaDomainName[i] = (LSA_TRUST_INFORMATION)Marshal.PtrToStructure((LSA_HANDLE)elemOffs, typeof(LSA_TRUST_INFORMATION));
                 elemOffs += Marshal.SizeOf(typeof(LSA_TRUST_INFORMATION));
 
@@ -241,8 +238,6 @@ namespace SecurityEditor {
 
             //return retNames;
             return domainUserName;
-
-
         }
 
         public void AddPrivileges(string account, UserRightsAssignment privilege) {
@@ -252,12 +247,8 @@ namespace SecurityEditor {
             uint ret = Win32Sec.LsaAddAccountRights(lsaHandle, pSid, privileges, 1);
 
             if (ret == 0) {
-                if (this._writeToConsole) {
-                    Console.WriteLine("Added: {0} to {1} successfully.", account, privilege);
-                }
                 return;
             }
-
             if (ret == STATUS_ACCESS_DENIED) {
                 throw new UnauthorizedAccessException();
             }
@@ -274,9 +265,6 @@ namespace SecurityEditor {
             uint ret = Win32Sec.LsaRemoveAccountRights(lsaHandle, pSid, false, privileges, 1);
 
             if (ret == 0) {
-                if (this._writeToConsole) {
-                    Console.WriteLine("Removed: {0} from {1} successfully.", account, privilege);
-                }
                 return;
             }
             if (ret == STATUS_ACCESS_DENIED) {
