@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace SecurityEditor {
+namespace LocalSecurityEditor {
     sealed class Win32Sec {
         [DllImport("advapi32", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurity]
         internal static extern uint LsaOpenPolicy(

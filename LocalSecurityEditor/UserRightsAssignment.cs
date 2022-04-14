@@ -1,4 +1,4 @@
-﻿namespace SecurityEditor {
+﻿namespace LocalSecurityEditor {
     /// <summary>
     /// List of constants used for UserRightsAssignment
     /// Each user right has a constant name and a Group Policy name associated with it.

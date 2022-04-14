@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <Description>.NET library for managing User Rights Assignment on Windows systems. It replicates the functionality of secpol.exe</Description>
-    <AssemblyName>SecurityEditor</AssemblyName>
-    <AssemblyTitle>SecurityEditor</AssemblyTitle>
+    <AssemblyName>LocalSecurityEditor</AssemblyName>
+    <AssemblyTitle>LocalSecurityEditor</AssemblyTitle>
 
     <TargetFrameworks>netstandard2.0;netstandard2.1;net45;net46;net472;net48;net5.0;net6.0</TargetFrameworks>
 
@@ -11,15 +11,15 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
-    <PackageId>SecurityEditor</PackageId>
+    <PackageId>LocalSecurityEditor</PackageId>
     <PackageTags>net45;net46;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
-    <PackageProjectUrl>https://github.com/evotecit/SecurityEditor</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/evotecit/SecurityEditor/blob/master/License.md</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/evotecit/LocalSecurityEditor</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/evotecit/LocalSecurityEditor/blob/master/License.md</PackageLicenseUrl>
     <DelaySign>False</DelaySign>
     <IsPublishable>True</IsPublishable>
     <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
 
-    <RepositoryUrl>https://github.com/evotecit/SecurityEditor</RepositoryUrl>
+    <RepositoryUrl>https://github.com/evotecit/LocalSecurityEditor</RepositoryUrl>
     <DebugType>portable</DebugType>
     <!--
       Turns off reference assembly generation

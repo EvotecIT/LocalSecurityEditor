@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SecurityEditor\SecurityEditor.csproj" />
+    <ProjectReference Include="..\LocalSecurityEditor\LocalSecurityEditor.csproj" />
   </ItemGroup>
 
 </Project>

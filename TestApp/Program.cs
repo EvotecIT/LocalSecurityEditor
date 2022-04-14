@@ -1,5 +1,5 @@
 ﻿using System;
-using SecurityEditor;
+using LocalSecurityEditor;
 
 namespace TestApp {
     internal class Program {

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using LSA_HANDLE = System.IntPtr;
 
-namespace SecurityEditor {
-    // LsaWrapper class credit: Willy Denoyette [MVP]
-
-
+namespace LocalSecurityEditor {
     [StructLayout(LayoutKind.Sequential)]
     struct LSA_OBJECT_ATTRIBUTES {
         internal int Length;
