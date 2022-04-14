@@ -3,14 +3,14 @@
 <p align="center">
   <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
   <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
-  <img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.5-red.svg">
-  <img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg">
+  <a href="#"><img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.5-red.svg"></a>
+  <a href="#"><img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/license/EvotecIT/LocalSecurityEditor.svg">
-  <img src="https://img.shields.io/github/languages/top/evotecit/LocalSecurityEditor.svg">
-  <img src="https://img.shields.io/github/languages/code-size/evotecit/LocalSecurityEditor.svg">
+  <a href="#"><img src="https://img.shields.io/github/license/EvotecIT/LocalSecurityEditor.svg"></a>
+  <a href="#"><img src="https://img.shields.io/github/languages/top/evotecit/LocalSecurityEditor.svg"></a>
+  <a href="#"><img src="https://img.shields.io/github/languages/code-size/evotecit/LocalSecurityEditor.svg"></a>
 </p>
 
 <p align="center">
