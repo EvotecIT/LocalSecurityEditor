@@ -185,7 +185,9 @@ namespace TestApp {
 
 ### Credits
 
+This library was created based on help from mutliple sources. Without those, it wouldn't be possible.
+
 - Willy Denoyette [MVP]
-- https://www.codeproject.com/Articles/4863/LSA-Functions-Privileges-and-Impersonation
-- https://social.msdn.microsoft.com/Forums/lync/en-US/3c0e7d5c-a786-45a1-aa65-a4a2a934c0cb/how-to-access-local-security-policy-of-computer-using-c-?forum=csharpgeneral
-- https://web.archive.org/web/20161006162851/http://www.lshift.net/blog/2013/03/25/programmatically-updating-local-policy-in-windows/
+- [LSA Functions - Privileges and Impersonation](https://www.codeproject.com/Articles/4863/LSA-Functions-Privileges-and-Impersonation)
+- [How to access local security policy of computer using C#](https://social.msdn.microsoft.com/Forums/lync/en-US/3c0e7d5c-a786-45a1-aa65-a4a2a934c0cb/how-to-access-local-security-policy-of-computer-using-c-?forum=csharpgeneral)
+- [Programmatically updating local policy in Windows](https://web.archive.org/web/20161006162851/http://www.lshift.net/blog/2013/03/25/programmatically-updating-local-policy-in-windows/)
