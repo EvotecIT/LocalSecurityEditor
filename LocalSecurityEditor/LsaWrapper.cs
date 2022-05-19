@@ -83,6 +83,8 @@ namespace LocalSecurityEditor {
         const uint STATUS_ACCESS_DENIED = 0xc0000022;
         const uint STATUS_INSUFFICIENT_RESOURCES = 0xc000009a;
         const uint STATUS_NO_MEMORY = 0xc0000017;
+        const uint STATUS_OBJECT_NAME_NOT_FOUND = 0xc0000034;
+        const uint STATUS_NO_MORE_ENTRIES = 0x8000001a;
 
         IntPtr lsaHandle;
 
@@ -104,8 +106,12 @@ namespace LocalSecurityEditor {
             }
 
             uint ret = Win32Sec.LsaOpenPolicy(system, ref lsaAttr, (int)Access.POLICY_ALL_ACCESS, out lsaHandle);
-            if (ret == 0)
+            if (ret == 0) {
                 return;
+            }
+            if (ret == STATUS_NO_MORE_ENTRIES) {
+                return;
+            }
             if (ret == STATUS_ACCESS_DENIED) {
                 throw new UnauthorizedAccessException();
             }
@@ -237,47 +243,71 @@ namespace LocalSecurityEditor {
             return domainUserName;
         }
 
+        /// <summary>
+        /// Add principal/account to UserRightsAssignment
+        /// </summary>
+        /// <param name="account"></param>
+        /// <param name="privilege"></param>
         public void AddPrivileges(string account, UserRightsAssignment privilege) {
-            IntPtr pSid = GetSIDInformation(account);
-            LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-            privileges[0] = InitLsaString(privilege.ToString());
-            uint ret = Win32Sec.LsaAddAccountRights(lsaHandle, pSid, privileges, 1);
+            //IntPtr pSid = GetSIDInformation(account);
+            try {
+                uint ret;
+                using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
+                    LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                    privileges[0] = InitLsaString(privilege.ToString());
+                    ret = Win32Sec.LsaAddAccountRights(lsaHandle, securityIdentifier.Address, privileges, 1);
+                }
 
-            if (ret == 0) {
-                return;
+                TestReturnValue(ret);
+            } catch {
+                throw;
             }
-            if (ret == STATUS_ACCESS_DENIED) {
-                throw new UnauthorizedAccessException();
-            }
-            if ((ret == STATUS_INSUFFICIENT_RESOURCES) || (ret == STATUS_NO_MEMORY)) {
-                throw new OutOfMemoryException();
-            }
-            throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
         }
 
-
+        /// <summary>
+        /// Remove principal/account from UserRightsAssignment
+        /// </summary>
+        /// <param name="account"></param>
+        /// <param name="privilege"></param>
         public void RemovePrivileges(string account, UserRightsAssignment privilege) {
-            IntPtr pSid = GetSIDInformation(account);
-            LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-            privileges[0] = InitLsaString(privilege.ToString());
-            uint ret = Win32Sec.LsaRemoveAccountRights(lsaHandle, pSid, false, privileges, 1);
+            //IntPtr pSid = GetSIDInformation(account);
+            try {
+                uint ret;
+                using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
+                    LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                    privileges[0] = InitLsaString(privilege.ToString());
+                    ret = Win32Sec.LsaRemoveAccountRights(lsaHandle, securityIdentifier.Address, false, privileges, 1);
+                }
 
-            if (ret == 0) {
-                return;
+                TestReturnValue(ret);
+            } catch {
+                throw;
             }
-            if (ret == STATUS_ACCESS_DENIED) {
-                throw new UnauthorizedAccessException();
-            }
-            if ((ret == STATUS_INSUFFICIENT_RESOURCES) || (ret == STATUS_NO_MEMORY)) {
-                throw new OutOfMemoryException();
-            }
-            if (ret == 3221225485) {
-                throw new Exception("Account " + account + " couldn't be found.");
-            }
-
-            throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
         }
 
+        /// <summary>
+        /// Throws error if there's anything else then 0
+        /// </summary>
+        /// <param name="returnValue"></param>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <exception cref="OutOfMemoryException"></exception>
+        /// <exception cref="Win32Exception"></exception>
+        private static void TestReturnValue(uint returnValue) {
+            switch (returnValue) {
+                case 0:
+                    return;
+                case STATUS_NO_MORE_ENTRIES:
+                    return;
+                case STATUS_ACCESS_DENIED:
+                    throw new UnauthorizedAccessException();
+                case STATUS_INSUFFICIENT_RESOURCES:
+                    throw new OutOfMemoryException();
+                case STATUS_NO_MEMORY:
+                    throw new OutOfMemoryException();
+                default:
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)returnValue));
+            }
+        }
 
         /// <summary>
         /// Dispose LsaWrapper
