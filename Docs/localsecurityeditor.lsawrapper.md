@@ -53,7 +53,7 @@ public String[] GetPrivileges(UserRightsAssignment privilege)
 
 ### **AddPrivileges(String, UserRightsAssignment)**
 
-
+Add principal/account to UserRightsAssignment
 
 ```csharp
 public void AddPrivileges(string account, UserRightsAssignment privilege)
@@ -67,7 +67,7 @@ public void AddPrivileges(string account, UserRightsAssignment privilege)
 
 ### **RemovePrivileges(String, UserRightsAssignment)**
 
-
+Remove principal/account from UserRightsAssignment
 
 ```csharp
 public void RemovePrivileges(string account, UserRightsAssignment privilege)
