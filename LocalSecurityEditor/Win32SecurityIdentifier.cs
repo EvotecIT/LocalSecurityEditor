@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 
@@ -10,7 +11,26 @@ namespace LocalSecurityEditor {
 
         public SecurityIdentifier securityIdentifier;
 
-        public Win32SecurityIdentifier(String principal) : this(new NTAccount(principal)) { }
+        public Win32SecurityIdentifier(String principal) {
+            NTAccount account = new NTAccount(principal);
+            SecurityIdentifier sid;
+            try {
+                sid = (SecurityIdentifier)account.Translate(typeof(SecurityIdentifier));
+            } catch (IdentityNotMappedException e) {
+                try {
+                    sid = new SecurityIdentifier(principal);
+                } catch (ArgumentException) {
+                    throw e;
+                } 
+            }
+
+            this.securityIdentifier = sid;
+
+            buffer = new Byte[securityIdentifier.BinaryLength];
+            securityIdentifier.GetBinaryForm(buffer, 0);
+
+            handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        }
 
         public Win32SecurityIdentifier(IdentityReference identityReference) : this((SecurityIdentifier)identityReference.Translate(typeof(SecurityIdentifier))) { }
 
@@ -53,4 +73,5 @@ namespace LocalSecurityEditor {
             disposed = true;
         }
     }
+
 }

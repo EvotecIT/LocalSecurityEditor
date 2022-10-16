@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using LSA_HANDLE = System.IntPtr;
 
 namespace LocalSecurityEditor {
@@ -83,8 +84,13 @@ namespace LocalSecurityEditor {
         const uint STATUS_ACCESS_DENIED = 0xc0000022;
         const uint STATUS_INSUFFICIENT_RESOURCES = 0xc000009a;
         const uint STATUS_NO_MEMORY = 0xc0000017;
-        const uint STATUS_OBJECT_NAME_NOT_FOUND = 0xc0000034;
-        const uint STATUS_NO_MORE_ENTRIES = 0x8000001a;
+        const uint STATUS_OBJECT_NAME_NOT_FOUND = 0xC0000034; //'0x{0:X8}' -f 3221225524
+        const uint STATUS_NO_MORE_ENTRIES = 0x8000001a; // '0x{0:X8}' -f 2147483674
+        const uint STATUS_SOME_NOT_MAPPED = 0x00000107;
+        const uint STATUS_NONE_MAPPED = 0x00000106;
+        const uint STATUS_SUCCESS = 0x00000000;
+        const uint STATUS_INVALID_PARAMETER = 0xC000000D;
+        const uint STATUS_INVALID_HANDLE = 0xC0000008;
 
         IntPtr lsaHandle;
 
@@ -149,6 +155,23 @@ namespace LocalSecurityEditor {
             }
 
             LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
+            string[] accounts = new string[count];
+            IntPtr currentOffset = buffer;
+            for (int i = 0; i < count; i++) {
+                LSA_ENUMERATION_INFORMATION info = Marshal.PtrToStructure<LSA_ENUMERATION_INFORMATION>(currentOffset);
+                currentOffset = IntPtr.Add(currentOffset, Marshal.SizeOf<LSA_ENUMERATION_INFORMATION>());
+
+                SecurityIdentifier sid = new SecurityIdentifier(info.PSid);
+                try {
+                    accounts[i] = sid.Translate(typeof(NTAccount)).Value;
+                } catch (IdentityNotMappedException) {
+                    accounts[i] = sid.Value;
+                }
+            }
+
+            return accounts;
+
+            
             for (Int64 i = 0, elemOffs = (Int64)buffer; i < count; i++) {
                 lsaInfo[i] = (LSA_ENUMERATION_INFORMATION)Marshal.PtrToStructure((IntPtr)elemOffs, typeof(LSA_ENUMERATION_INFORMATION));
                 elemOffs += Marshal.SizeOf(typeof(LSA_ENUMERATION_INFORMATION));
@@ -157,6 +180,8 @@ namespace LocalSecurityEditor {
             LSA_HANDLE domains;
             LSA_HANDLE names;
             ret = Win32Sec.LsaLookupSids(lsaHandle, lsaInfo.Length, buffer, out domains, out names);
+
+  
 
             if (ret != 0) {
                 if (ret == STATUS_ACCESS_DENIED) {
@@ -167,7 +192,7 @@ namespace LocalSecurityEditor {
                     throw new OutOfMemoryException();
                 }
 
-                throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
+               // throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
             }
 
             /*string[] retNames = new string[count];
@@ -240,7 +265,7 @@ namespace LocalSecurityEditor {
             Win32Sec.LsaFreeMemory(names);
 
             //return retNames;
-            return domainUserName;
+            //return domainUserName;
         }
 
         /// <summary>
@@ -304,6 +329,8 @@ namespace LocalSecurityEditor {
                     throw new OutOfMemoryException();
                 case STATUS_NO_MEMORY:
                     throw new OutOfMemoryException();
+                case STATUS_OBJECT_NAME_NOT_FOUND:
+                    throw new Exception("Object not found");
                 default:
                     throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)returnValue));
             }
