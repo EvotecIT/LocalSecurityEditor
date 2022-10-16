@@ -1,7 +1,7 @@
 ﻿#### LocalSecurityEditor Release History
 
 #### 0.3.0 - 2022.10.16
-- Fixes issue with unresolvable SIDs - should work fine for getting, removing and adding unresolvable SID now
+- Fixes issue with unresolvable SIDs - should work fine for getting, removing and adding unresolvable SID now (tnx **jborean93**)
 - Remove NET 4.5
 - Added NET 4.5.2
 
