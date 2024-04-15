@@ -1,5 +1,12 @@
 ﻿#### LocalSecurityEditor Release History
 
+#### 0.4.0
+- Add `Net 8.0` support
+- Add `Net 7.0` support
+- Add `Net 6.0` support
+- Remove `Net 5.0` support
+- Add ability to generate NT Service SIDs using `NTService.GenerateSID` method
+
 #### 0.3.0 - 2022.10.16
 - Fixes issue with unresolvable SIDs - should work fine for getting, removing and adding unresolvable SID now (tnx **jborean93**)
 - Remove NET 4.5
