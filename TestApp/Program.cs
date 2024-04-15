@@ -2,13 +2,39 @@
 using System.Security.Principal;
 using System.Threading;
 using System.Xml.Serialization;
+
 using LocalSecurityEditor;
 
 namespace TestApp {
     internal class Program {
         static void Main() {
-            Example1();
+            /Example1();
             Example2_ExternalComputer();
+            ExampleCoversion();
+        }
+
+        public static void ExampleCoversion() {
+            string serviceName = "ADSync";
+            string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
+            string serviceSid = NTService.GenerateSID(serviceName);
+            Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
+
+
+            string serviceName2 = "MSSQLSERVER";
+            string serviceExpectedSid2 = "S-1-5-80-3139157870-2983391045-3678747466-658725712-1809340420";
+            string serviceSid2 = NTService.GenerateSID(serviceName2);
+            Console.WriteLine($"The SID for the service '{serviceName2}' is: {serviceSid2} {serviceExpectedSid2} {(serviceSid2 == serviceExpectedSid2)}");
+
+            string serviceName3 = "himds";
+            string serviceExpectedSid3 = "S-1-5-80-4215458991-2034252225-2287069555-1155419622-2701885083";
+            string serviceSid3 = NTService.GenerateSID(serviceName3);
+            Console.WriteLine($"The SID for the service '{serviceName3}' is: {serviceSid3} {serviceExpectedSid3} {(serviceSid3 == serviceExpectedSid3)}");
+
+            string serviceName4 = "SQLSERVERAGENT";
+            string serviceExpectedSid4 = "S-1-5-80-344959196-2060754871-2302487193-2804545603-1466107430";
+            string serviceSid4 = NTService.GenerateSID(serviceName4);
+            Console.WriteLine($"The SID for the service '{serviceName4}' is: {serviceSid4} {serviceExpectedSid4} {(serviceSid4 == serviceExpectedSid4)}");
+
         }
 
         private static void Example1() {
