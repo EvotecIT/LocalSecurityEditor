@@ -183,6 +183,15 @@ namespace TestApp {
 }
 ```
 
+### Example GenerateSID
+
+```csharp
+string serviceName = "ADSync";
+string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
+string serviceSid = NTService.GenerateSID(serviceName);
+Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
+```
+
 ### Credits
 
 This library was created based on help from mutliple sources. Without those, it wouldn't be possible.
