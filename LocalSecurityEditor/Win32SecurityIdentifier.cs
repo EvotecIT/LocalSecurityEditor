@@ -56,6 +56,10 @@ namespace LocalSecurityEditor {
             }
         }
 
+        ~Win32SecurityIdentifier() {
+            Dispose(false);
+        }
+
         /// <summary>
         /// Disposes of an object
         /// </summary>
@@ -67,7 +71,7 @@ namespace LocalSecurityEditor {
         protected virtual void Dispose(bool disposing) {
             if (disposed) return;
 
-            if (disposing && handle.IsAllocated)
+            if (handle.IsAllocated)
                 handle.Free();
 
             disposed = true;
