@@ -1,8 +1,21 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 
 namespace LocalSecurityEditor {
+    internal enum SID_NAME_USE {
+        SidTypeUser = 1,
+        SidTypeGroup,
+        SidTypeDomain,
+        SidTypeAlias,
+        SidTypeWellKnownGroup,
+        SidTypeDeletedAccount,
+        SidTypeInvalid,
+        SidTypeUnknown,
+        SidTypeComputer
+    }
+
     sealed class Win32Sec {
         [DllImport("advapi32", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurity]
         internal static extern uint LsaOpenPolicy(
@@ -38,6 +51,14 @@ namespace LocalSecurityEditor {
         );
 
         [DllImport("advapi32", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurity]
+        internal static extern uint LsaEnumerateAccountRights(
+            IntPtr PolicyHandle,
+            IntPtr AccountSid,
+            out IntPtr UserRights,
+            out ulong CountOfRights
+        );
+
+        [DllImport("advapi32", CharSet = CharSet.Unicode, SetLastError = true), SuppressUnmanagedCodeSecurity]
         internal static extern uint LsaLookupSids(
             IntPtr PolicyHandle,
             int count,
@@ -64,5 +85,38 @@ namespace LocalSecurityEditor {
 
         [DllImport("advapi32")]
         internal static extern int LsaFreeMemory(IntPtr Buffer);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true), SuppressUnmanagedCodeSecurity]
+        internal static extern bool LookupAccountName(
+            string lpSystemName,
+            string lpAccountName,
+            byte[] Sid,
+            ref uint cbSid,
+            StringBuilder ReferencedDomainName,
+            ref uint cchReferencedDomainName,
+            out SID_NAME_USE peUse
+        );
+
+        [DllImport("netapi32.dll", CharSet = CharSet.Unicode), SuppressUnmanagedCodeSecurity]
+        internal static extern uint NetAddServiceAccount(
+            string ServerName,
+            string AccountName,
+            string Reserved,
+            uint Flags
+        );
+
+        [DllImport("netapi32.dll", CharSet = CharSet.Unicode), SuppressUnmanagedCodeSecurity]
+        internal static extern uint NetIsServiceAccount(
+            string ServerName,
+            string AccountName,
+            out bool IsService
+        );
+
+        [DllImport("netapi32.dll", CharSet = CharSet.Unicode), SuppressUnmanagedCodeSecurity]
+        internal static extern uint NetRemoveServiceAccount(
+            string ServerName,
+            string AccountName,
+            int Flags
+        );
     }
 }
