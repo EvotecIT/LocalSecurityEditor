@@ -1,0 +1,45 @@
+name: Test .NET
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'Docs/**'
+      - 'Examples/**'
+      - '.gitignore'
+  pull_request:
+    branches:
+      - master
+
+env:
+  DOTNET_VERSIONS: |
+    8.0.x
+    9.0.x
+  BUILD_CONFIGURATION: 'Release'
+
+jobs:
+  test-windows:
+    name: 'Windows'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSIONS }}
+
+      - name: Restore dependencies
+        run: dotnet restore LocalSecurityEditor.sln
+
+      - name: Build solution
+        run: dotnet build LocalSecurityEditor.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Test net472
+        run: dotnet test LocalSecurityEditor.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472
+
+      - name: Test net8.0
+        run: dotnet test LocalSecurityEditor.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net8.0

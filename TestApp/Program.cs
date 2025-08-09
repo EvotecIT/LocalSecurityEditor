@@ -8,7 +8,7 @@ using LocalSecurityEditor;
 namespace TestApp {
     internal class Program {
         static void Main() {
-            /Example1();
+            //Example1();
             Example2_ExternalComputer();
             ExampleCoversion();
         }
