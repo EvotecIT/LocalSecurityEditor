@@ -368,7 +368,18 @@ namespace LocalSecurityEditor {
             return lts.Sid;
         }
 
+        /// <summary>
+        /// Creates an <see cref="LSA_UNICODE_STRING"/> from the specified string.
+        /// </summary>
+        /// <param name="s">The string to convert.</param>
+        /// <returns>The initialized <see cref="LSA_UNICODE_STRING"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="s"/> is null or empty.</exception>
+        /// <exception cref="ArgumentException">Thrown when the string exceeds 32 KB.</exception>
         private static LSA_UNICODE_STRING InitLsaString(string s) {
+            if (string.IsNullOrEmpty(s)) {
+                throw new ArgumentNullException(nameof(s));
+            }
+
             // Unicode strings max. 32KB
             if (s.Length > 0x7ffe)
                 throw new ArgumentException("String too long");
