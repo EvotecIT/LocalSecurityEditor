@@ -20,8 +20,8 @@ namespace LocalSecurityEditor {
                 try {
                     sid = new SecurityIdentifier(principal);
                 } catch (ArgumentException) {
-                    throw e;
-                } 
+                    throw;
+                }
             }
 
             this.securityIdentifier = sid;
