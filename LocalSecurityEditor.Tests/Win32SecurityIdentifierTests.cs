@@ -7,14 +7,14 @@ namespace LocalSecurityEditor.Tests;
 public class Win32SecurityIdentifierTests
 {
     [Fact]
-    public void Constructor_InvalidPrincipal_RethrowsIdentityNotMappedExceptionWithOriginalStackTrace()
+    public void Constructor_InvalidPrincipal_RethrowsArgumentExceptionWithOriginalStackTrace()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return;
         }
 
-        var ex = Assert.Throws<IdentityNotMappedException>(() => new Win32SecurityIdentifier("NonExistentUser"));
-        Assert.Contains("Win32SecurityIdentifier.cs:line 18", ex.StackTrace);
+        var ex = Assert.Throws<ArgumentException>(() => new Win32SecurityIdentifier("NonExistentUser"));
+        Assert.Contains("Win32SecurityIdentifier..ctor", ex.StackTrace);
     }
 }
