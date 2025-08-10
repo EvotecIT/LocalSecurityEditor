@@ -35,6 +35,9 @@ namespace TestApp {
             string serviceSid4 = NTService.GenerateSID(serviceName4);
             Console.WriteLine($"The SID for the service '{serviceName4}' is: {serviceSid4} {serviceExpectedSid4} {(serviceSid4 == serviceExpectedSid4)}");
 
+            string trustedInstallerSid = "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464";
+            string? trustedInstallerName = NTService.ResolveServiceName(trustedInstallerSid);
+            Console.WriteLine($"The service for the SID '{trustedInstallerSid}' is: {trustedInstallerName}");
         }
 
         private static void Example1() {
