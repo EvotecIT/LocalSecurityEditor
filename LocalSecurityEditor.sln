@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalSecurityEditor", "LocalSecurityEditor\LocalSecurityEditor.csproj", "{74D9A5F3-1C53-4AB1-9234-3E7487AB7B6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{48D6B1BC-EE16-4994-AEE0-5751E34C78B5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalSecurityEditor.Examples", "LocalSecurityEditor.Examples\LocalSecurityEditor.Examples.csproj", "{48D6B1BC-EE16-4994-AEE0-5751E34C78B5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalSecurityEditor.Tests", "LocalSecurityEditor.Tests\LocalSecurityEditor.Tests.csproj", "{79E3D70A-838A-40D2-AE2D-B03C793FDD34}"
 EndProject
