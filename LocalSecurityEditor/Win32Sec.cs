@@ -86,12 +86,29 @@ namespace LocalSecurityEditor {
         [DllImport("advapi32")]
         internal static extern int LsaFreeMemory(IntPtr Buffer);
 
+        [DllImport("advapi32.dll", SetLastError = true)]
+        internal static extern bool ConvertSidToStringSid(IntPtr Sid, out IntPtr StringSid);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr LocalFree(IntPtr hMem);
+
         [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true), SuppressUnmanagedCodeSecurity]
         internal static extern bool LookupAccountName(
             string lpSystemName,
             string lpAccountName,
             byte[] Sid,
             ref uint cbSid,
+            StringBuilder ReferencedDomainName,
+            ref uint cchReferencedDomainName,
+            out SID_NAME_USE peUse
+        );
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true), SuppressUnmanagedCodeSecurity]
+        internal static extern bool LookupAccountSid(
+            string lpSystemName,
+            IntPtr Sid,
+            StringBuilder Name,
+            ref uint cchName,
             StringBuilder ReferencedDomainName,
             ref uint cchReferencedDomainName,
             out SID_NAME_USE peUse

@@ -23,7 +23,7 @@
 
 .NET library for managing local security policy (User Rights Assignment). This library was written to use in PowerShell Module [SecurityPolicy](https://github.com/EvotecIT/SecurityPolicy) providing easy way to manage local security policy.
 
-### Supported User Rights Assignement
+### Supported User Rights Assignment
 
 | ConstantName                              | Group Policy Setting                                               |
 | ----------------------------------------- | ------------------------------------------------------------------ |
@@ -190,6 +190,44 @@ string serviceName = "ADSync";
 string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
 string serviceSid = NTService.GenerateSID(serviceName);
 Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
+```
+
+### New Typed, OO API (vNext)
+
+```csharp
+using LocalSecurityEditor;
+
+// Get principals for a right (local machine)
+var principals = UserRightsAssignment.SeServiceLogonRight.Get();
+foreach (var p in principals) {
+    Console.WriteLine($"{p.AccountName} -> {p.SidString}");
+}
+
+// Manage rights on a remote system (batching via manager)
+using (var ur = new UserRights("SERVER01")) {
+    // Add by account name or SID
+    ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch", "S-1-5-32-544" });
+
+    // Replace entire set for a right (adds missing, removes extras)
+    var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
+        new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
+    Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
+}
+
+### Aggregate URA Objects (PowerShell-friendly)
+
+```csharp
+// One object per user right, each with Principals[]
+var all = UserRights.Get(); // static Get() overload — local machine
+// or as dictionary keyed by enum
+var byRight = new UserRights().GetByRight(); // instance when batching
+// or keyed by ShortName (e.g., "SeServiceLogonRight")
+var byShort = new UserRights().GetByShortName();
+
+// Single right as typed object
+var svc = UserRightsAssignment.SeServiceLogonRight.Get(); // single right via extension
+Console.WriteLine($"{svc.Name} has {svc.Count} principals");
+```
 ```
 
 ### Credits

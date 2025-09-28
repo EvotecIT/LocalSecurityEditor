@@ -3,7 +3,7 @@
 .NET library for managing local security policy (User Rights Assignment).
 
 
-### Supported User Rights Assignement
+### Supported User Rights Assignment
 
 | ConstantName                              | Group Policy Setting                                               |
 | ----------------------------------------- | ------------------------------------------------------------------ |
@@ -159,6 +159,32 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
         }
-    }
 }
+}
+```
+
+### New Typed, OO API (vNext)
+
+```csharp
+using LocalSecurityEditor;
+
+// Get all user rights as typed objects (one per right)
+var all = UserRights.Get();
+foreach (var ura in all)
+{
+    Console.WriteLine($"{ura.ShortName} -> {ura.Count} principals");
+}
+
+// Single right as typed object with principals
+var svc = UserRightsAssignment.SeServiceLogonRight.Get();
+Console.WriteLine($"{svc.Name}: {string.Join(", ", svc.Principals.Select(p => p.AccountName))}");
+
+// Remote machine catalog
+var allRemote = UserRights.Get("SERVER01");
+
+// Add/Remove/Set
+UserRightsAssignment.SeBatchLogonRight.Add(@"DOMAIN\\svc_batch");
+UserRightsAssignment.SeBatchLogonRight.Remove(@"DOMAIN\\old_user");
+var result = UserRightsAssignment.SeDenyRemoteInteractiveLogonRight.Set(new[]{ @"DOMAIN\\contractor1", @"DOMAIN\\contractor2"});
+Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
 ```

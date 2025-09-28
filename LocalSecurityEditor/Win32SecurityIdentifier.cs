@@ -9,7 +9,7 @@ namespace LocalSecurityEditor {
         private GCHandle handle;
         private Byte[] buffer;
 
-        public SecurityIdentifier securityIdentifier;
+        public SecurityIdentifier securityIdentifier { get; }
 
         public Win32SecurityIdentifier(String principal) {
             NTAccount account = new NTAccount(principal);
