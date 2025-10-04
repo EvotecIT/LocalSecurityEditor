@@ -2,6 +2,9 @@
 using System.ComponentModel;
 using System.Text;
 using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 using LSA_HANDLE = System.IntPtr;
 
 namespace LocalSecurityEditor {
@@ -21,8 +24,13 @@ namespace LocalSecurityEditor {
         [MarshalAs(UnmanagedType.LPWStr)]
         internal string Buffer;
     }
-
-
+    /// <summary>
+    /// Thin managed wrapper around the Windows Local Security Authority (LSA) policy APIs
+    /// used to enumerate, add and remove User Rights Assignments for accounts on a machine.
+    /// </summary>
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     public sealed class LsaWrapper : IDisposable {
         // obsolete field removed
 
@@ -84,8 +92,19 @@ namespace LocalSecurityEditor {
         IntPtr lsaHandle;
         private readonly string systemName;
 
+        /// <summary>
+        /// Creates an instance bound to the local machine.
+        /// </summary>
         public LsaWrapper() : this(null) { }
-        // // local system if systemName is null
+
+        /// <summary>
+        /// Creates an instance bound to a specified remote system or the local
+        /// system when <paramref name="systemName"/> is <c>null</c>.
+        /// </summary>
+        /// <param name="systemName">NetBIOS or DNS name of the target computer, or <c>null</c> for local.</param>
+        /// <exception cref="UnauthorizedAccessException">Insufficient rights to open the LSA policy.</exception>
+        /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
+        /// <exception cref="Win32Exception">Other LSA-related failures. Inspect <see cref="Win32Exception.NativeErrorCode"/>.</exception>
         public LsaWrapper(string systemName) {
             LSA_OBJECT_ATTRIBUTES lsaAttr;
             lsaAttr.RootDirectory = IntPtr.Zero;
@@ -119,6 +138,14 @@ namespace LocalSecurityEditor {
             throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
         }
 
+        /// <summary>
+        /// Returns a list of domain-qualified account names having the specified user right.
+        /// </summary>
+        /// <param name="privilege">The user right (privilege) to query.</param>
+        /// <returns>Array of account names (e.g. <c>DOMAIN\\User</c> or <c>BUILTIN\\Administrators</c>).</returns>
+        /// <exception cref="UnauthorizedAccessException">Caller lacks required permissions.</exception>
+        /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
+        /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public string[] GetPrivileges(UserRightsAssignment privilege) {
             LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
             privileges[0] = InitLsaString(privilege.ToString());
@@ -209,8 +236,13 @@ namespace LocalSecurityEditor {
         }
 
         /// <summary>
-        /// Returns rich principal information (both SID and account name) for a given right.
+        /// Returns rich principal information (both SID and account name) for a given user right.
         /// </summary>
+        /// <param name="privilege">The user right (privilege) to query.</param>
+        /// <returns>An array of <see cref="PrincipalInfo"/> entries describing principals with the right.</returns>
+        /// <exception cref="UnauthorizedAccessException">Caller lacks required permissions.</exception>
+        /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
+        /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public PrincipalInfo[] GetPrincipals(UserRightsAssignment privilege) {
             LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
             privileges[0] = InitLsaString(privilege.ToString());
@@ -358,10 +390,13 @@ namespace LocalSecurityEditor {
         }
 
         /// <summary>
-        /// Add principal/account to UserRightsAssignment
+        /// Grants a user right to the specified account or SID string.
         /// </summary>
-        /// <param name="account"></param>
-        /// <param name="privilege"></param>
+        /// <param name="account">Account name (e.g. <c>DOMAIN\\User</c>, <c>BUILTIN\\Administrators</c>) or SID string.</param>
+        /// <param name="privilege">The user right (privilege) to grant.</param>
+        /// <exception cref="UnauthorizedAccessException">Caller lacks required permissions.</exception>
+        /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
+        /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public void AddPrivileges(string account, UserRightsAssignment privilege) {
             //IntPtr pSid = GetSIDInformation(account);
             try {
@@ -400,12 +435,12 @@ namespace LocalSecurityEditor {
         }
 
         /// <summary>
-        /// Throws error if there's anything else then 0
+        /// Validates an NTSTATUS-like return value from an LSA call and throws when it indicates failure.
         /// </summary>
-        /// <param name="returnValue"></param>
-        /// <exception cref="UnauthorizedAccessException"></exception>
-        /// <exception cref="OutOfMemoryException"></exception>
-        /// <exception cref="Win32Exception"></exception>
+        /// <param name="returnValue">The native return value.</param>
+        /// <exception cref="UnauthorizedAccessException">Access was denied by the LSA.</exception>
+        /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
+        /// <exception cref="Win32Exception">For other failures, exposes the translated Win32 error.</exception>
         private static void TestReturnValue(uint returnValue) {
             switch (returnValue) {
                 case 0:
@@ -426,7 +461,7 @@ namespace LocalSecurityEditor {
         }
 
         /// <summary>
-        /// Dispose LsaWrapper
+        /// Releases the underlying LSA policy handle.
         /// </summary>
         public void Dispose() {
             if (lsaHandle != IntPtr.Zero) {
@@ -436,6 +471,9 @@ namespace LocalSecurityEditor {
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Finalizer ensuring that native resources are released when <see cref="Dispose()"/> is not called.
+        /// </summary>
         ~LsaWrapper() {
             Dispose();
         }

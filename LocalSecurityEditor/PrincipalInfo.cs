@@ -12,16 +12,44 @@ namespace LocalSecurityEditor {
     [SupportedOSPlatform("windows")]
 #endif
     public sealed class PrincipalInfo {
+        /// <summary>
+        /// String representation of the account's SID (e.g. <c>S-1-5-21-...</c>).
+        /// </summary>
         public string SidString { get; }
+
+        /// <summary>
+        /// Domain of the account when available (e.g. <c>CONTOSO</c> or <c>BUILTIN</c>).
+        /// </summary>
         public string Domain { get; }
+
+        /// <summary>
+        /// Account name without domain qualification.
+        /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Classification of the SID as resolved by Windows (user, group, alias, etc.).
+        /// </summary>
         public SidNameUse Use { get; }
 
+        /// <summary>
+        /// Fully qualified account name in <c>DOMAIN\\Name</c> form when the domain is known; otherwise just <see cref="Name"/>.
+        /// </summary>
         public string AccountName =>
             string.IsNullOrEmpty(Domain) ? (Name ?? string.Empty) : ($"{Domain}\\{Name}");
 
+        /// <summary>
+        /// Strongly-typed <see cref="SecurityIdentifier"/> created from <see cref="SidString"/>.
+        /// </summary>
         public SecurityIdentifier Sid => new SecurityIdentifier(SidString);
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="PrincipalInfo"/>.
+        /// </summary>
+        /// <param name="sidString">String SID of the principal.</param>
+        /// <param name="domain">Domain name or <c>null</c>.</param>
+        /// <param name="name">Account name or <c>null</c>.</param>
+        /// <param name="use">SID classification.</param>
         public PrincipalInfo(string sidString, string domain, string name, SidNameUse use) {
             SidString = sidString ?? string.Empty;
             Domain = domain;
@@ -29,6 +57,9 @@ namespace LocalSecurityEditor {
             Use = use;
         }
 
+        /// <summary>
+        /// Returns a human-friendly representation containing the account name (when available) and SID.
+        /// </summary>
         public override string ToString() =>
             string.IsNullOrEmpty(AccountName) ? SidString : $"{AccountName} ({SidString})";
     }
