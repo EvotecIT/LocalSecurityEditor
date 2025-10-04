@@ -1,6 +1,10 @@
 ﻿# LocalSecurityEditor - .NET Library
 
-.NET library for managing local security policy (User Rights Assignment).
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/targets-net472%20|%20netstandard2.0%20|%20net8.0--windows%20|%20net9.0--windows-blue"></a>
+</p>
+
+.NET library for managing local security policy (User Rights Assignment). This library powers PowerShell module scenarios and general .NET automation for querying and modifying User Rights Assignments (LSA policy).
 
 
 ### Supported User Rights Assignment
@@ -53,7 +57,7 @@
 | SeSyncAgentPrivilege                      | Synchronize directory service data                                 |
 | SeTakeOwnershipPrivilege                  | Take ownership of files or other objects                           |
 
-### Example Local Computer
+### Example Local Computer (LSA wrapper)
 
 ```csharp
 using System;
@@ -64,7 +68,7 @@ namespace TestApp {
         static void Main() {
             string[] accounts;
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Displaying current assignments (local)");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
@@ -74,13 +78,13 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Adding Account to the Server");
+            Console.WriteLine("[*] Granting right to an account");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 lsa.AddPrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
             }
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Displaying current assignments (local)");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
@@ -90,13 +94,13 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Removing a principal and listing again");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 lsa.RemovePrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
             }
 
-            using (LsaWrapper lsa = new LsaWrapper("")) {
+            using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
             }
 
@@ -108,7 +112,7 @@ namespace TestApp {
 }
 ```
 
-### Example Remote Computer
+### Example Remote Computer (LSA wrapper)
 
 ```csharp
 using System;
@@ -129,7 +133,7 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Adding Account to the Server");
+            Console.WriteLine("[*] Granting right to an account");
 
             using (LsaWrapper lsa = new LsaWrapper("AD1")) {
                 lsa.AddPrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
@@ -145,7 +149,7 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Accessing AD1 server - Displaying Current");
+            Console.WriteLine("[*] Removing the principal and listing again");
 
             using (LsaWrapper lsa = new LsaWrapper("AD1")) {
                 lsa.RemovePrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
@@ -163,28 +167,46 @@ namespace TestApp {
 }
 ```
 
-### New Typed, OO API (vNext)
+### Typed, OO API
 
 ```csharp
 using LocalSecurityEditor;
 
-// Get all user rights as typed objects (one per right)
+// Enumerate all rights (local)
 var all = UserRights.Get();
-foreach (var ura in all)
-{
-    Console.WriteLine($"{ura.ShortName} -> {ura.Count} principals");
+foreach (var ura in all) {
+    Console.WriteLine($"{ura.ShortName}: {ura.Count} principals");
 }
 
 // Single right as typed object with principals
 var svc = UserRightsAssignment.SeServiceLogonRight.Get();
-Console.WriteLine($"{svc.Name}: {string.Join(", ", svc.Principals.Select(p => p.AccountName))}");
+foreach (var p in svc.Principals) {
+    Console.WriteLine($"{p.AccountName} -> {p.SidString}");
+}
 
 // Remote machine catalog
 var allRemote = UserRights.Get("SERVER01");
 
-// Add/Remove/Set
+// Add/Remove/Set via fluent extensions
 UserRightsAssignment.SeBatchLogonRight.Add(@"DOMAIN\\svc_batch");
 UserRightsAssignment.SeBatchLogonRight.Remove(@"DOMAIN\\old_user");
 var result = UserRightsAssignment.SeDenyRemoteInteractiveLogonRight.Set(new[]{ @"DOMAIN\\contractor1", @"DOMAIN\\contractor2"});
 Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
+
+// Batching with a manager (remote)
+using (var ur = new UserRights("SERVER01")) {
+    ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch" });
+    var summary = ur.Set(UserRightsAssignment.SeServiceLogonRight, new [] { @"DOMAIN\\svc_svc" });
+    Console.WriteLine(summary);
+}
+
+```
+
+### Generate service SIDs
+
+```csharp
+string serviceName = "ADSync";
+string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
+string serviceSid = NTService.GenerateSID(serviceName);
+Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
 ```
