@@ -72,7 +72,7 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Number of principals assigned the right.
         /// </summary>
-        public int Count { get { return Principals == null ? 0 : Principals.Count; } }
+        public int Count => Principals?.Count ?? 0;
 
         /// <summary>
         /// Creates a <see cref="UserRightState"/> from the given definition and principal list.

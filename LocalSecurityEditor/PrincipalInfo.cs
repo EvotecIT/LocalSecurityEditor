@@ -35,10 +35,16 @@ namespace LocalSecurityEditor {
         public string AccountName =>
             string.IsNullOrEmpty(Domain) ? (Name ?? string.Empty) : ($"{Domain}\\{Name}");
 
+        private SecurityIdentifier _sid;
         /// <summary>
-        /// Strongly-typed <see cref="SecurityIdentifier"/> created from <see cref="SidString"/>.
+        /// Strongly-typed <see cref="SecurityIdentifier"/> created lazily from <see cref="SidString"/>.
         /// </summary>
-        public SecurityIdentifier Sid => new SecurityIdentifier(SidString);
+        public SecurityIdentifier Sid {
+            get {
+                if (_sid == null) _sid = new SecurityIdentifier(SidString);
+                return _sid;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of <see cref="PrincipalInfo"/>.

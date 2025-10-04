@@ -210,9 +210,9 @@ namespace LocalSecurityEditor {
             if (desiredPrincipals == null) throw new ArgumentNullException(nameof(desiredPrincipals));
             if (existingPrincipals == null) throw new ArgumentNullException(nameof(existingPrincipals));
 
-            var existingSids = new HashSet<string>(existingPrincipals.Select(e => e.SidString), StringComparer.OrdinalIgnoreCase);
+            var existingSids = new HashSet<string>(existingPrincipals.Select(e => e.SidString), StringComparer.Ordinal);
 
-            var desiredSidSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var desiredSidSet = new HashSet<string>(StringComparer.Ordinal);
             var unresolved = new List<string>();
             foreach (var principal in desiredPrincipals) {
                 if (string.IsNullOrWhiteSpace(principal)) continue;
@@ -220,7 +220,9 @@ namespace LocalSecurityEditor {
                     using (var sid = new Win32SecurityIdentifier(principal)) {
                         desiredSidSet.Add(sid.SecurityIdentifier.Value);
                     }
-                } catch {
+                } catch (System.Security.Principal.IdentityNotMappedException) {
+                    unresolved.Add(principal);
+                } catch (ArgumentException) {
                     unresolved.Add(principal);
                 }
             }

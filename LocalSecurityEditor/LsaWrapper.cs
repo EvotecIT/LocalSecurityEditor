@@ -51,6 +51,7 @@ namespace LocalSecurityEditor {
         // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls
         private struct SidInfo { public string Domain; public string Name; public SidNameUse Use; }
         private static readonly ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
+        private const int MAX_SID_CACHE = 4096;
 
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_TRUST_INFORMATION {
@@ -354,7 +355,13 @@ namespace LocalSecurityEditor {
                         if (!string.IsNullOrEmpty(fUser)) user = fUser;
                         if (!string.IsNullOrEmpty(fDomain)) domain = fDomain;
                         if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
-                        if (!string.IsNullOrEmpty(sidString)) s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
+                        if (!string.IsNullOrEmpty(sidString)) {
+                            s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
+                            if (s_sidCache.Count > MAX_SID_CACHE) {
+                                // simple bound: clear when exceeding max to prevent unbounded growth
+                                s_sidCache.Clear();
+                            }
+                        }
                     }
                 }
 
