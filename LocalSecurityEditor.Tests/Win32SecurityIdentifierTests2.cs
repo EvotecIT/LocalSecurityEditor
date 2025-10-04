@@ -1,0 +1,20 @@
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Security.Principal;
+using Xunit;
+
+namespace LocalSecurityEditor.Tests;
+
+public class Win32SecurityIdentifierTests2
+{
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public void FromSecurityIdentifier_ExposesPinnedAddress()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        var sid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+        using var pinned = new Win32SecurityIdentifier(sid);
+        Assert.NotEqual(System.IntPtr.Zero, pinned.Address);
+        Assert.Equal(sid.Value, pinned.SecurityIdentifier.Value);
+    }
+}

@@ -15,7 +15,7 @@ namespace LocalSecurityEditor {
 #endif
     public sealed class UserRights : IDisposable {
         private readonly LsaWrapper _lsa;
-        private bool _disposed;
+        private volatile bool _disposed;
 
         /// <summary>
         /// Target system name this instance operates on, or <c>null</c> for the local machine.
@@ -68,8 +68,14 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Enumerates the state for all user rights.
         /// </summary>
+        private static readonly UserRightsAssignment[] s_allRights =
+            (UserRightsAssignment[])Enum.GetValues(typeof(UserRightsAssignment));
+
+        /// <summary>
+        /// Enumerates the state for all user rights.
+        /// </summary>
         public IReadOnlyList<UserRightState> Enumerate() {
-            var rights = (UserRightsAssignment[])Enum.GetValues(typeof(UserRightsAssignment));
+            var rights = s_allRights;
             var list = new List<UserRightState>(rights.Length);
             for (int i = 0; i < rights.Length; i++) {
                 list.Add(GetState(rights[i]));
@@ -82,7 +88,7 @@ namespace LocalSecurityEditor {
         /// </summary>
         public Dictionary<UserRightsAssignment, UserRightState> GetByRight() {
             var map = new Dictionary<UserRightsAssignment, UserRightState>();
-            var rights = (UserRightsAssignment[])Enum.GetValues(typeof(UserRightsAssignment));
+            var rights = s_allRights;
             for (int i = 0; i < rights.Length; i++) {
                 var right = rights[i];
                 map[right] = GetState(right);
@@ -96,7 +102,7 @@ namespace LocalSecurityEditor {
         public Dictionary<string, UserRightState> GetByShortName(StringComparer comparer = null) {
             if (comparer == null) comparer = StringComparer.Ordinal;
             var map = new Dictionary<string, UserRightState>(comparer);
-            var rights = (UserRightsAssignment[])Enum.GetValues(typeof(UserRightsAssignment));
+            var rights = s_allRights;
             for (int i = 0; i < rights.Length; i++) {
                 var state = GetState(rights[i]);
                 map[state.ShortName] = state;
@@ -137,13 +143,15 @@ namespace LocalSecurityEditor {
         /// Returns a summary of changes performed.
         /// </summary>
         public UserRightSetResult Set(UserRightsAssignment right, IEnumerable<string> desiredPrincipals) {
+            if (desiredPrincipals == null) throw new ArgumentNullException(nameof(desiredPrincipals));
             var existing = Get(right);
             var existingSids = new HashSet<string>(existing.Select(e => e.SidString), StringComparer.OrdinalIgnoreCase);
 
             var desiredSidSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var principal in desiredPrincipals) {
+                if (string.IsNullOrWhiteSpace(principal)) continue;
                 using (var sid = new Win32SecurityIdentifier(principal)) {
-                    desiredSidSet.Add(sid.securityIdentifier.Value);
+                    desiredSidSet.Add(sid.SecurityIdentifier.Value);
                 }
             }
 
@@ -167,7 +175,7 @@ namespace LocalSecurityEditor {
         public void Add(UserRightsAssignment right, IEnumerable<IdentityReference> principals) {
             foreach (var p in principals) {
                 using (var sid = new Win32SecurityIdentifier(p)) {
-                    _lsa.AddPrivileges(sid.securityIdentifier.Value, right);
+                    _lsa.AddPrivileges(sid.SecurityIdentifier.Value, right);
                 }
             }
         }
@@ -187,7 +195,7 @@ namespace LocalSecurityEditor {
         public void Remove(UserRightsAssignment right, IEnumerable<IdentityReference> principals) {
             foreach (var p in principals) {
                 using (var sid = new Win32SecurityIdentifier(p)) {
-                    _lsa.RemovePrivileges(sid.securityIdentifier.Value, right);
+                    _lsa.RemovePrivileges(sid.SecurityIdentifier.Value, right);
                 }
             }
         }

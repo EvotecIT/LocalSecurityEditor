@@ -9,14 +9,14 @@ namespace LocalSecurityEditor {
     /// binary form in memory and exposes a stable unmanaged address for P/Invoke calls.
     /// </summary>
     public class Win32SecurityIdentifier : IDisposable {
-        private bool disposed = false;
+        private volatile bool disposed = false;
         private GCHandle handle;
         private Byte[] buffer;
 
         /// <summary>
         /// The strongly typed SID represented by this instance.
         /// </summary>
-        public SecurityIdentifier securityIdentifier { get; }
+        public SecurityIdentifier SecurityIdentifier { get; }
 
         /// <summary>
         /// Creates an instance from an account name or SID string.
@@ -37,10 +37,10 @@ namespace LocalSecurityEditor {
                 }
             }
 
-            this.securityIdentifier = sid;
+            this.SecurityIdentifier = sid;
 
-            buffer = new Byte[securityIdentifier.BinaryLength];
-            securityIdentifier.GetBinaryForm(buffer, 0);
+            buffer = new Byte[SecurityIdentifier.BinaryLength];
+            SecurityIdentifier.GetBinaryForm(buffer, 0);
 
             handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         }
@@ -54,7 +54,7 @@ namespace LocalSecurityEditor {
         /// Creates an instance from an existing <see cref="SecurityIdentifier"/>.
         /// </summary>
         public Win32SecurityIdentifier(SecurityIdentifier securityIdentifier) {
-            this.securityIdentifier = securityIdentifier;
+            this.SecurityIdentifier = securityIdentifier;
 
             buffer = new Byte[securityIdentifier.BinaryLength];
             securityIdentifier.GetBinaryForm(buffer, 0);

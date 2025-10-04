@@ -213,6 +213,13 @@ using (var ur = new UserRights("SERVER01")) {
     Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
 }
 
+// Performance tip: For many operations, prefer reusing a single UserRights instance
+// Less efficient (allocates per call):
+// right.Add("user1"); right.Add("user2"); right.Add("user3");
+// Better:
+// using var ur = new UserRights();
+// ur.Add(right, new [] { "user1", "user2", "user3" });
+
 ### Aggregate URA Objects (PowerShell-friendly)
 
 ```csharp
