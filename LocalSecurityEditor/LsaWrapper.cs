@@ -121,8 +121,8 @@ namespace LocalSecurityEditor {
                 system[0] = InitLsaString(systemName);
             }
 
-            // Use minimal required access; lookup names covers enumerate/add/remove rights operations
-            uint ret = Win32Sec.LsaOpenPolicy(system, ref lsaAttr, (int)Access.POLICY_LOOKUP_NAMES, out lsaHandle);
+            // Open with broad access to satisfy enumerate and modify operations reliably (CI often runs elevated)
+            uint ret = Win32Sec.LsaOpenPolicy(system, ref lsaAttr, (int)Access.POLICY_ALL_ACCESS, out lsaHandle);
             if (ret == 0) {
                 return;
             }
@@ -165,7 +165,7 @@ namespace LocalSecurityEditor {
 
                 // meaning there are no accounts (empty)
                 if (ret == STATUS_NO_MORE_ENTRIES) {
-                    return new string[0];
+                    return Array.Empty<string>();
                 }
 
                 throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
@@ -259,7 +259,7 @@ namespace LocalSecurityEditor {
                     throw new OutOfMemoryException();
                 }
                 if (ret == STATUS_NO_MORE_ENTRIES) {
-                    return new PrincipalInfo[0];
+                    return Array.Empty<PrincipalInfo>();
                 }
                 throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
             }
