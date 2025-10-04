@@ -170,6 +170,7 @@ namespace LocalSecurityEditor {
         public void Add(UserRightsAssignment right, IEnumerable<string> principals) {
             if (principals == null) throw new ArgumentNullException(nameof(principals));
             foreach (var p in principals) {
+                ValidatePrincipal(p);
                 _lsa.AddPrivileges(p, right);
             }
         }
@@ -185,6 +186,7 @@ namespace LocalSecurityEditor {
         public void Remove(UserRightsAssignment right, IEnumerable<string> principals) {
             if (principals == null) throw new ArgumentNullException(nameof(principals));
             foreach (var p in principals) {
+                ValidatePrincipal(p);
                 _lsa.RemovePrivileges(p, right);
             }
         }
@@ -216,6 +218,7 @@ namespace LocalSecurityEditor {
             var unresolved = new List<string>();
             foreach (var principal in desiredPrincipals) {
                 if (string.IsNullOrWhiteSpace(principal)) continue;
+                ValidatePrincipal(principal);
                 try {
                     using (var sid = new Win32SecurityIdentifier(principal)) {
                         desiredSidSet.Add(sid.SecurityIdentifier.Value);
@@ -238,6 +241,15 @@ namespace LocalSecurityEditor {
             }
 
             return new UserRightSetResult(right, added: toAdd, removed: toRemove, unresolved: unresolved);
+        }
+
+        private static void ValidatePrincipal(string principal) {
+            if (principal == null) throw new ArgumentNullException(nameof(principal));
+            if (principal.Length == 0 || string.IsNullOrWhiteSpace(principal)) throw new ArgumentException("Principal cannot be empty or whitespace.", nameof(principal));
+            // Reject control characters to avoid passing malformed inputs to native APIs
+            foreach (var ch in principal) {
+                if (char.IsControl(ch)) throw new ArgumentException("Principal contains control characters.", nameof(principal));
+            }
         }
 
         // Overloads for typed identities

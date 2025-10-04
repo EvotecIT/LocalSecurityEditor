@@ -51,7 +51,10 @@ namespace LocalSecurityEditor {
         // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls
         private struct SidInfo { public string Domain; public string Name; public SidNameUse Use; }
         private static ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentQueue<string> s_sidKeys = new ConcurrentQueue<string>();
+        private static int s_sidTrimInProgress;
         private const int MAX_SID_CACHE = 4096;
+        private const int SID_TRIM_BATCH = 512;
 
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_TRUST_INFORMATION {
@@ -357,10 +360,18 @@ namespace LocalSecurityEditor {
                         if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
                         if (!string.IsNullOrEmpty(sidString)) {
                             s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
-                            if (s_sidCache.Count > MAX_SID_CACHE) {
-                                // Replace atomically to avoid races while trimming the cache
-                                var newCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
-                                Interlocked.Exchange(ref s_sidCache, newCache);
+                            s_sidKeys.Enqueue(sidString);
+                            if (s_sidCache.Count > MAX_SID_CACHE && Interlocked.CompareExchange(ref s_sidTrimInProgress, 1, 0) == 0) {
+                                try {
+                                    int removed = 0;
+                                    // Trim approximately in FIFO order to cap memory; not strict LRU but bounded
+                                    while (s_sidCache.Count > (MAX_SID_CACHE - SID_TRIM_BATCH) && s_sidKeys.TryDequeue(out var oldKey)) {
+                                        s_sidCache.TryRemove(oldKey, out _);
+                                        if (++removed >= SID_TRIM_BATCH) break;
+                                    }
+                                } finally {
+                                    Volatile.Write(ref s_sidTrimInProgress, 0);
+                                }
                             }
                         }
                     }

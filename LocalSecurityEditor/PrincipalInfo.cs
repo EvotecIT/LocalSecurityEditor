@@ -1,5 +1,6 @@
 using System;
 using System.Security.Principal;
+using System.Threading;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
 #endif
@@ -41,8 +42,13 @@ namespace LocalSecurityEditor {
         /// </summary>
         public SecurityIdentifier Sid {
             get {
-                if (_sid == null) _sid = new SecurityIdentifier(SidString);
-                return _sid;
+                var sid = _sid;
+                if (sid == null) {
+                    var created = new SecurityIdentifier(SidString);
+                    Interlocked.CompareExchange(ref _sid, created, null);
+                    sid = _sid;
+                }
+                return sid;
             }
         }
 

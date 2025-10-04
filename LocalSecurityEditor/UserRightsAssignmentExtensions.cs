@@ -111,6 +111,46 @@ namespace LocalSecurityEditor {
         }
 
         /// <summary>
+        /// Reconciles the right using an existing manager instance (more efficient for bulk operations).
+        /// </summary>
+        public static UserRightSetResult Set(this UserRightsAssignment right, UserRights manager, IEnumerable<string> principals) {
+            if (manager == null) throw new ArgumentNullException(nameof(manager));
+            return manager.Set(right, principals);
+        }
+
+        /// <summary>
+        /// Grants the specified right to a principal using an existing manager instance (bulk-friendly).
+        /// </summary>
+        public static void Add(this UserRightsAssignment right, UserRights manager, string principal) {
+            if (manager == null) throw new ArgumentNullException(nameof(manager));
+            manager.Add(right, principal);
+        }
+
+        /// <summary>
+        /// Grants the specified right to a sequence of principals using an existing manager instance.
+        /// </summary>
+        public static void Add(this UserRightsAssignment right, UserRights manager, IEnumerable<string> principals) {
+            if (manager == null) throw new ArgumentNullException(nameof(manager));
+            manager.Add(right, principals);
+        }
+
+        /// <summary>
+        /// Removes the specified right from a principal using an existing manager instance.
+        /// </summary>
+        public static void Remove(this UserRightsAssignment right, UserRights manager, string principal) {
+            if (manager == null) throw new ArgumentNullException(nameof(manager));
+            manager.Remove(right, principal);
+        }
+
+        /// <summary>
+        /// Removes the specified right from a sequence of principals using an existing manager instance.
+        /// </summary>
+        public static void Remove(this UserRightsAssignment right, UserRights manager, IEnumerable<string> principals) {
+            if (manager == null) throw new ArgumentNullException(nameof(manager));
+            manager.Remove(right, principals);
+        }
+
+        /// <summary>
         /// Asynchronously reconciles the right so that exactly the provided principals remain.
         /// </summary>
         public static async Task<UserRightSetResult> SetAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
