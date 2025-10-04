@@ -215,6 +215,13 @@ var all = await new UserRights("SERVER01").EnumerateAsync(ct);
 var svc2 = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
 ```
 
+### Thread Safety
+
+- The library is safe to use from multiple tasks.
+- Internally it uses a reader–writer lock:
+  - Reads may run in parallel; writes are exclusive; dispose is exclusive.
+- Prefer reusing a single `UserRights` instance for batching, or create per-task instances for isolation.
+
 ### Generate service SIDs
 
 ```csharp

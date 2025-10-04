@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 #endif
 using LSA_HANDLE = System.IntPtr;
+using System.Threading;
 
 namespace LocalSecurityEditor {
     [StructLayout(LayoutKind.Sequential)]
@@ -28,10 +29,27 @@ namespace LocalSecurityEditor {
     /// Thin managed wrapper around the Windows Local Security Authority (LSA) policy APIs
     /// used to enumerate, add and remove User Rights Assignments for accounts on a machine.
     /// </summary>
+    /// <remarks>
+    /// Thread safety
+    /// - This type is safe to share across threads. It synchronizes access with a per-instance
+    ///   ReaderWriterLockSlim.
+    /// - Read operations (GetPrivileges, GetPrincipals) enter a read lock and may run in parallel.
+    /// - Write operations (AddPrivileges, RemovePrivileges) and Dispose enter a write lock and are
+    ///   mutually exclusive with reads and other writes. Dispose blocks until in-flight operations
+    ///   complete and then closes the underlying LSA policy handle.
+    /// - Methods throw ObjectDisposedException when invoked after Dispose.
+    ///
+    /// Guidance
+    /// - Prefer batching related changes on a single instance. For heavy fan-out reads you may
+    ///   create separate instances or rely on concurrent reads via the shared instance.
+    /// - LSA calls are blocking; consider calling from background threads (see async wrappers
+    ///   on the higher-level UserRights facade) if integrating with UI code.
+    /// </remarks>
 #if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
 #endif
     public sealed class LsaWrapper : IDisposable {
+        private readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         // obsolete field removed
 
         [StructLayout(LayoutKind.Sequential)]
@@ -147,6 +165,9 @@ namespace LocalSecurityEditor {
         /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
         /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public string[] GetPrivileges(UserRightsAssignment privilege) {
+            _rwLock.EnterReadLock();
+            try {
+                if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
             LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
             privileges[0] = InitLsaString(privilege.ToString());
 
@@ -233,6 +254,8 @@ namespace LocalSecurityEditor {
             Win32Sec.LsaFreeMemory(namePtr);
 
             return accountNames;
+            }
+            finally { _rwLock.ExitReadLock(); }
         }
 
         /// <summary>
@@ -244,6 +267,9 @@ namespace LocalSecurityEditor {
         /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
         /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public PrincipalInfo[] GetPrincipals(UserRightsAssignment privilege) {
+            _rwLock.EnterReadLock();
+            try {
+                if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
             LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
             privileges[0] = InitLsaString(privilege.ToString());
 
@@ -334,6 +360,8 @@ namespace LocalSecurityEditor {
             Win32Sec.LsaFreeMemory(namePtr);
 
             return principals;
+            }
+            finally { _rwLock.ExitReadLock(); }
         }
 
         private static string TryConvertSidToString(IntPtr sidPtr) {
@@ -398,6 +426,9 @@ namespace LocalSecurityEditor {
         /// <exception cref="OutOfMemoryException">System reports insufficient resources.</exception>
         /// <exception cref="Win32Exception">Underlying LSA call failed with a native error.</exception>
         public void AddPrivileges(string account, UserRightsAssignment privilege) {
+            _rwLock.EnterWriteLock();
+            try {
+                if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
             //IntPtr pSid = GetSIDInformation(account);
             try {
                 uint ret;
@@ -411,6 +442,8 @@ namespace LocalSecurityEditor {
             } catch {
                 throw;
             }
+            }
+            finally { _rwLock.ExitWriteLock(); }
         }
 
         /// <summary>
@@ -419,6 +452,9 @@ namespace LocalSecurityEditor {
         /// <param name="account"></param>
         /// <param name="privilege"></param>
         public void RemovePrivileges(string account, UserRightsAssignment privilege) {
+            _rwLock.EnterWriteLock();
+            try {
+                if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
             //IntPtr pSid = GetSIDInformation(account);
             try {
                 uint ret;
@@ -432,6 +468,8 @@ namespace LocalSecurityEditor {
             } catch {
                 throw;
             }
+            }
+            finally { _rwLock.ExitWriteLock(); }
         }
 
         /// <summary>
@@ -464,10 +502,14 @@ namespace LocalSecurityEditor {
         /// Releases the underlying LSA policy handle.
         /// </summary>
         public void Dispose() {
-            if (lsaHandle != IntPtr.Zero) {
-                Win32Sec.LsaClose(lsaHandle);
-                lsaHandle = IntPtr.Zero;
+            _rwLock.EnterWriteLock();
+            try {
+                if (lsaHandle != IntPtr.Zero) {
+                    Win32Sec.LsaClose(lsaHandle);
+                    lsaHandle = IntPtr.Zero;
+                }
             }
+            finally { _rwLock.ExitWriteLock(); }
             GC.SuppressFinalize(this);
         }
 

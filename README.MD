@@ -235,6 +235,17 @@ await new UserRights().RemoveAsync(UserRightsAssignment.SeBatchLogonRight, new[]
 // Fluent async extensions
 var svc = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
 
+### Thread Safety
+
+- `UserRights`/`LsaWrapper` can be shared safely across tasks.
+- Internally uses a reader–writer lock:
+  - Parallel reads allowed (Get/GetState/Enumerate).
+  - Writes (Add/Remove/Set) are exclusive.
+  - Dispose is exclusive and waits for in-flight operations.
+- Guidance:
+  - For many operations, reuse a single `UserRights` instance (reads may run in parallel).
+  - For heavy fan-out, you can also create per-task instances.
+
 ### Aggregate URA Objects (PowerShell-friendly)
 
 ```csharp
