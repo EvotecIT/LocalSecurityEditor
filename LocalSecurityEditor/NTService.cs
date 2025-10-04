@@ -20,9 +20,9 @@ namespace LocalSecurityEditor {
         /// </code>
         /// </example>
         public static string GenerateSID(string serviceName) {
-            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException(nameof(serviceName));
-            using (SHA1Managed sha1 = new SHA1Managed()) {
-                byte[] serviceNameBytes = Encoding.Unicode.GetBytes(serviceName.ToUpper());
+            if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name cannot be null or whitespace.", nameof(serviceName));
+            using (var sha1 = SHA1.Create()) {
+                byte[] serviceNameBytes = Encoding.Unicode.GetBytes(serviceName.ToUpperInvariant());
                 byte[] hash = sha1.ComputeHash(serviceNameBytes);
 
                 StringBuilder sb = new StringBuilder("S-1-5-80");

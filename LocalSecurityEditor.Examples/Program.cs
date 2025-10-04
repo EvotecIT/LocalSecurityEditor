@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Principal;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 using LocalSecurityEditor;
@@ -8,9 +9,64 @@ using LocalSecurityEditor;
 namespace TestApp {
     internal class Program {
         static void Main() {
-            //Example1();
-            Example2_ExternalComputer();
+            // Basic local enumeration using the OO API
+            Example_UserRightsApi_Local();
+
+            // Remote machine sample
+            // Example_UserRightsApi_Remote("AD1");
+
+            // Low-level LsaWrapper examples
+            // Example1();
+            // Example2_ExternalComputer();
             ExampleCoversion();
+
+            // Async examples (runs synchronously here for cross-TFM support)
+            Example_UserRightsApi_Async().GetAwaiter().GetResult();
+        }
+
+        private static void Example_UserRightsApi_Local() {
+            // enumerate all rights and dump counts
+            var all = UserRights.Get();
+            foreach (var ura in all) {
+                Console.WriteLine($"{ura.ShortName}: {ura.Count} principals");
+            }
+
+            // single right via extension method
+            var serviceLogon = UserRightsAssignment.SeServiceLogonRight.Get();
+            foreach (var p in serviceLogon.Principals) {
+                Console.WriteLine($"SERVICE LOGON -> {p.AccountName} ({p.SidString})");
+            }
+        }
+
+        private static void Example_UserRightsApi_Remote(string computer) {
+            using (var ur = new UserRights(computer)) {
+                // add by account name or SID
+                ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch" });
+
+                // reconcile set for a right
+                var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
+                    new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
+                Console.WriteLine(result);
+            }
+        }
+
+        private static async Task Example_UserRightsApi_Async() {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            try {
+                // Query single right asynchronously (local)
+                var svc = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, cts.Token);
+                Console.WriteLine($"Async: {svc.ShortName} -> {svc.Count} principals");
+
+                // Enumerate all rights asynchronously (local)
+                var all = await new UserRights().EnumerateAsync(cts.Token);
+                Console.WriteLine($"Async: Enumerated {all.Count} rights");
+
+                // Fluent async extension (remote)
+                // var remoteSvc = await UserRightsAssignment.SeBatchLogonRight.GetAsync("SERVER01", cts.Token);
+                // Console.WriteLine($"Remote async: {remoteSvc.ShortName} -> {remoteSvc.Count} principals");
+            } finally {
+                cts.Dispose();
+            }
         }
 
         public static void ExampleCoversion() {

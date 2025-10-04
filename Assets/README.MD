@@ -1,9 +1,16 @@
 ﻿# LocalSecurityEditor - .NET Library
 
-.NET library for managing local security policy (User Rights Assignment).
+[![NuGet Version](https://img.shields.io/nuget/v/LocalSecurityEditor)](https://www.nuget.org/packages/LocalSecurityEditor)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/LocalSecurityEditor)](https://www.nuget.org/packages/LocalSecurityEditor)
+![.NET Framework 4.7.2](https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4)
+![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4)
+![.NET (Windows) 8.0 | 9.0](https://img.shields.io/badge/.NET%20(Windows)-8.0%20%7C%209.0-512BD4)
+![Platform Windows-only](https://img.shields.io/badge/Platform-Windows--only-blue)
+
+.NET library for managing local security policy (User Rights Assignment). This library powers PowerShell module scenarios and general .NET automation for querying and modifying User Rights Assignments (LSA policy).
 
 
-### Supported User Rights Assignement
+### Supported User Rights Assignment
 
 | ConstantName                              | Group Policy Setting                                               |
 | ----------------------------------------- | ------------------------------------------------------------------ |
@@ -53,7 +60,7 @@
 | SeSyncAgentPrivilege                      | Synchronize directory service data                                 |
 | SeTakeOwnershipPrivilege                  | Take ownership of files or other objects                           |
 
-### Example Local Computer
+### Example Local Computer (LSA wrapper)
 
 ```csharp
 using System;
@@ -64,7 +71,7 @@ namespace TestApp {
         static void Main() {
             string[] accounts;
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Displaying current assignments (local)");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
@@ -74,13 +81,13 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Adding Account to the Server");
+            Console.WriteLine("[*] Granting right to an account");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 lsa.AddPrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
             }
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Displaying current assignments (local)");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
@@ -90,13 +97,13 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Accessing  server - Displaying Current");
+            Console.WriteLine("[*] Removing a principal and listing again");
 
             using (LsaWrapper lsa = new LsaWrapper()) {
                 lsa.RemovePrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
             }
 
-            using (LsaWrapper lsa = new LsaWrapper("")) {
+            using (LsaWrapper lsa = new LsaWrapper()) {
                 accounts = lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight);
             }
 
@@ -108,7 +115,7 @@ namespace TestApp {
 }
 ```
 
-### Example Remote Computer
+### Example Remote Computer (LSA wrapper)
 
 ```csharp
 using System;
@@ -129,7 +136,7 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Adding Account to the Server");
+            Console.WriteLine("[*] Granting right to an account");
 
             using (LsaWrapper lsa = new LsaWrapper("AD1")) {
                 lsa.AddPrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
@@ -145,7 +152,7 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
 
-            Console.WriteLine("[*] Accessing AD1 server - Displaying Current");
+            Console.WriteLine("[*] Removing the principal and listing again");
 
             using (LsaWrapper lsa = new LsaWrapper("AD1")) {
                 lsa.RemovePrivileges("EVOTEC\\przemyslaw.klys", UserRightsAssignment.SeBatchLogonRight);
@@ -159,6 +166,75 @@ namespace TestApp {
                 Console.WriteLine(account);
             }
         }
-    }
 }
+}
+```
+
+### Typed, OO API
+
+```csharp
+using LocalSecurityEditor;
+
+// Enumerate all rights (local)
+var all = UserRights.Get();
+foreach (var ura in all) {
+    Console.WriteLine($"{ura.ShortName}: {ura.Count} principals");
+}
+
+// Lazy streaming
+foreach (var ura in new UserRights().EnumerateLazy()) {
+    Console.WriteLine(ura);
+}
+
+// Single right as typed object with principals
+var svc = UserRightsAssignment.SeServiceLogonRight.Get();
+foreach (var p in svc.Principals) {
+    Console.WriteLine($"{p.AccountName} -> {p.SidString}");
+}
+
+// Remote machine catalog
+var allRemote = UserRights.Get("SERVER01");
+
+// Add/Remove/Set via fluent extensions
+UserRightsAssignment.SeBatchLogonRight.Add(@"DOMAIN\\svc_batch");
+UserRightsAssignment.SeBatchLogonRight.Remove(@"DOMAIN\\old_user");
+var result = UserRightsAssignment.SeDenyRemoteInteractiveLogonRight.Set(new[]{ @"DOMAIN\\contractor1", @"DOMAIN\\contractor2"});
+Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
+
+// Batching with a manager (remote)
+using (var ur = new UserRights("SERVER01")) {
+    ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch" });
+    var summary = ur.Set(UserRightsAssignment.SeServiceLogonRight, new [] { @"DOMAIN\\svc_svc" });
+    Console.WriteLine(summary);
+}
+
+```
+
+### Async APIs
+
+```csharp
+// Single right (local)
+var svc = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, ct);
+
+// Enumerate all (remote)
+var all = await new UserRights("SERVER01").EnumerateAsync(ct);
+
+// Fluent async extensions
+var svc2 = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
+```
+
+### Thread Safety
+
+- The library is safe to use from multiple tasks.
+- Internally it uses a reader–writer lock:
+  - Reads may run in parallel; writes are exclusive; dispose is exclusive.
+- Prefer reusing a single `UserRights` instance for batching, or create per-task instances for isolation.
+
+### Generate service SIDs
+
+```csharp
+string serviceName = "ADSync";
+string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
+string serviceSid = NTService.GenerateSID(serviceName);
+Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
 ```

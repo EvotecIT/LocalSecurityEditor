@@ -1,10 +1,12 @@
 ﻿# LocalSecurityEditor - .NET Library
 
 <p align="center">
-  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
-  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
-  <a href="#"><img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.5-red.svg"></a>
-  <a href="#"><img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg"></a>
+  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="NuGet" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
+  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="NuGet" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
+  <a href="#"><img alt=".NET Framework" src="https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4"></a>
+  <a href="#"><img alt=".NET Standard" src="https://img.shields.io/badge/.NET%20Standard-2.0-512BD4"></a>
+  <a href="#"><img alt=".NET (Windows)" src="https://img.shields.io/badge/.NET%20(Windows)-8.0%20%7C%209.0-512BD4"></a>
+  <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-Windows--only-blue"></a>
 </p>
 
 <p align="center">
@@ -23,7 +25,7 @@
 
 .NET library for managing local security policy (User Rights Assignment). This library was written to use in PowerShell Module [SecurityPolicy](https://github.com/EvotecIT/SecurityPolicy) providing easy way to manage local security policy.
 
-### Supported User Rights Assignement
+### Supported User Rights Assignment
 
 | ConstantName                              | Group Policy Setting                                               |
 | ----------------------------------------- | ------------------------------------------------------------------ |
@@ -190,6 +192,79 @@ string serviceName = "ADSync";
 string serviceExpectedSid = "S-1-5-80-3245704983-3664226991-764670653-2504430226-901976451";
 string serviceSid = NTService.GenerateSID(serviceName);
 Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
+```
+
+### Typed, OO API
+
+```csharp
+using LocalSecurityEditor;
+
+// Get state for a right (local machine)
+var svc = UserRightsAssignment.SeServiceLogonRight.Get();
+foreach (var p in svc.Principals) {
+    Console.WriteLine($"{p.AccountName} -> {p.SidString}");
+}
+
+// Manage rights on a remote system (batching via manager)
+using (var ur = new UserRights("SERVER01")) {
+    // Add by account name or SID
+    ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch", "S-1-5-32-544" });
+
+    // Replace entire set for a right (adds missing, removes extras)
+    var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
+        new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
+    Console.WriteLine(result); // e.g., SeDenyRemoteInteractiveLogonRight: +1 -0
+}
+
+// Performance tip: For many operations, prefer reusing a single UserRights instance
+// Less efficient (allocates per call):
+// right.Add("user1"); right.Add("user2"); right.Add("user3");
+// Better:
+// using var ur = new UserRights();
+// ur.Add(right, new [] { "user1", "user2", "user3" });
+
+### Async APIs
+
+// Query a single right asynchronously (local)
+var state = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, ct);
+
+// Enumerate all rights asynchronously (remote)
+var all = await new UserRights("SERVER01").EnumerateAsync(ct);
+
+// Grant/remove asynchronously
+await new UserRights().AddAsync(UserRightsAssignment.SeBatchLogonRight, new[] { @"DOMAIN\\user1" }, ct);
+await new UserRights().RemoveAsync(UserRightsAssignment.SeBatchLogonRight, new[] { @"DOMAIN\\user1" }, ct);
+
+// Fluent async extensions
+var svc = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
+
+### Thread Safety
+
+- `UserRights`/`LsaWrapper` can be shared safely across tasks.
+- Internally uses a reader–writer lock:
+  - Parallel reads allowed (Get/GetState/Enumerate).
+  - Writes (Add/Remove/Set) are exclusive.
+  - Dispose is exclusive and waits for in-flight operations.
+- Guidance:
+  - For many operations, reuse a single `UserRights` instance (reads may run in parallel).
+  - For heavy fan-out, you can also create per-task instances.
+
+### Aggregate URA Objects (PowerShell-friendly)
+
+```csharp
+// One object per user right, each with Principals[]
+var all = UserRights.Get(); // static Get() overload — local machine
+// stream lazily
+foreach (var ura in new UserRights().EnumerateLazy()) { /* ... */ }
+// or as dictionary keyed by enum
+var byRight = new UserRights().GetByRight(); // instance when batching
+// or keyed by ShortName (e.g., "SeServiceLogonRight")
+var byShort = new UserRights().GetByShortName();
+
+// Single right as typed object
+var single = UserRightsAssignment.SeServiceLogonRight.Get(); // single right via extension
+Console.WriteLine($"{single.Name} has {single.Count} principals");
+```
 ```
 
 ### Credits
