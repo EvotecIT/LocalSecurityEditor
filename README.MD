@@ -3,8 +3,7 @@
 <p align="center">
   <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
   <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
-  <a href="#"><img src="https://img.shields.io/badge/.NET%20Framework-%3E%3D%204.5-red.svg"></a>
-  <a href="#"><img src="https://img.shields.io/badge/.NET%20Standard-%3E%3D%202.0-red.svg"></a>
+  <a href="#"><img src="https://img.shields.io/badge/targets-net472%20|%20netstandard2.0%20|%20net8.0--windows%20|%20net9.0--windows-blue"></a>
 </p>
 
 <p align="center">
@@ -192,14 +191,14 @@ string serviceSid = NTService.GenerateSID(serviceName);
 Console.WriteLine($"The SID for the service '{serviceName}' is: {serviceSid} {serviceExpectedSid} {(serviceSid == serviceExpectedSid)}");
 ```
 
-### New Typed, OO API (vNext)
+### Typed, OO API
 
 ```csharp
 using LocalSecurityEditor;
 
-// Get principals for a right (local machine)
-var principals = UserRightsAssignment.SeServiceLogonRight.Get();
-foreach (var p in principals) {
+// Get state for a right (local machine)
+var svc = UserRightsAssignment.SeServiceLogonRight.Get();
+foreach (var p in svc.Principals) {
     Console.WriteLine($"{p.AccountName} -> {p.SidString}");
 }
 
@@ -225,8 +224,8 @@ var byRight = new UserRights().GetByRight(); // instance when batching
 var byShort = new UserRights().GetByShortName();
 
 // Single right as typed object
-var svc = UserRightsAssignment.SeServiceLogonRight.Get(); // single right via extension
-Console.WriteLine($"{svc.Name} has {svc.Count} principals");
+var single = UserRightsAssignment.SeServiceLogonRight.Get(); // single right via extension
+Console.WriteLine($"{single.Name} has {single.Count} principals");
 ```
 ```
 

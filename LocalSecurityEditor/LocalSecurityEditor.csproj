@@ -4,21 +4,22 @@
 		<Description>.NET library for managing User Rights Assignment on Windows systems. It replicates the functionality of secedit.exe</Description>
 		<AssemblyName>LocalSecurityEditor</AssemblyName>
 		<AssemblyTitle>LocalSecurityEditor</AssemblyTitle>
-		<VersionPrefix>0.3.0</VersionPrefix>
+		<VersionPrefix>0.4.0</VersionPrefix>
 
 		<!--
 		  This library is Windows-only by design. Target modern TFMs with
 		  explicit Windows qualifiers to avoid platform analyzer warnings (CA1416)
 		  while retaining .NET Standard and classic .NET Framework targets.
 		-->
-		<TargetFrameworks>netstandard2.0;netstandard2.1;net452;net46;net472;net48;net6.0-windows;net7.0-windows;net8.0-windows</TargetFrameworks>
+		<!-- Slim, supported target set: .NET 8/9 on Windows + netstandard2.0 for broad reach -->
+		<TargetFrameworks>netstandard2.0;net472;net8.0-windows;net9.0-windows</TargetFrameworks>
 
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Evotec</Company>
 		<Authors>Przemyslaw Klys</Authors>
 
 		<PackageId>LocalSecurityEditor</PackageId>
-		<PackageTags>net45;net46;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1</PackageTags>
+		<PackageTags>net472;net8.0-windows;net9.0-windows;netstandard2.0;security;lsa;user-rights;windows</PackageTags>
 		<PackageProjectUrl>https://github.com/evotecit/LocalSecurityEditor</PackageProjectUrl>
 		<!-- Use PackageLicenseExpression to avoid NU5125 deprecation warning -->
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -38,6 +39,7 @@
 		<RepositoryType>git</RepositoryType>
 		<SignAssembly>False</SignAssembly>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageReleaseNotes>TFMs: net472, net8.0-windows, net9.0-windows, netstandard2.0. Added extensive XML docs. Fixed CA1416 warnings and license metadata.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
@@ -61,40 +63,6 @@
 		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net46'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="System.Security.Principal.Windows">
-			<Version>5.0.0</Version>
-		</PackageReference>
-	</ItemGroup>
 
 </Project>

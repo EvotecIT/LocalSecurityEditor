@@ -8,9 +8,42 @@ using LocalSecurityEditor;
 namespace TestApp {
     internal class Program {
         static void Main() {
-            //Example1();
-            Example2_ExternalComputer();
+            // Basic local enumeration using the OO API
+            Example_UserRightsApi_Local();
+
+            // Remote machine sample
+            // Example_UserRightsApi_Remote("AD1");
+
+            // Low-level LsaWrapper examples
+            // Example1();
+            // Example2_ExternalComputer();
             ExampleCoversion();
+        }
+
+        private static void Example_UserRightsApi_Local() {
+            // enumerate all rights and dump counts
+            var all = UserRights.Get();
+            foreach (var ura in all) {
+                Console.WriteLine($"{ura.ShortName}: {ura.Count} principals");
+            }
+
+            // single right via extension method
+            var serviceLogon = UserRightsAssignment.SeServiceLogonRight.Get();
+            foreach (var p in serviceLogon.Principals) {
+                Console.WriteLine($"SERVICE LOGON -> {p.AccountName} ({p.SidString})");
+            }
+        }
+
+        private static void Example_UserRightsApi_Remote(string computer) {
+            using (var ur = new UserRights(computer)) {
+                // add by account name or SID
+                ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch" });
+
+                // reconcile set for a right
+                var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
+                    new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
+                Console.WriteLine(result);
+            }
         }
 
         public static void ExampleCoversion() {
