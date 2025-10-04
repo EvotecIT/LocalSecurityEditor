@@ -168,6 +168,7 @@ namespace LocalSecurityEditor {
         /// Grants a right to each of the specified principals.
         /// </summary>
         public void Add(UserRightsAssignment right, IEnumerable<string> principals) {
+            if (principals == null) throw new ArgumentNullException(nameof(principals));
             foreach (var p in principals) {
                 _lsa.AddPrivileges(p, right);
             }
@@ -182,6 +183,7 @@ namespace LocalSecurityEditor {
         /// Removes a right from each of the specified principals.
         /// </summary>
         public void Remove(UserRightsAssignment right, IEnumerable<string> principals) {
+            if (principals == null) throw new ArgumentNullException(nameof(principals));
             foreach (var p in principals) {
                 _lsa.RemovePrivileges(p, right);
             }
@@ -197,15 +199,29 @@ namespace LocalSecurityEditor {
         /// Returns a summary of changes performed.
         /// </summary>
         public UserRightSetResult Set(UserRightsAssignment right, IEnumerable<string> desiredPrincipals) {
+            var current = Get(right);
+            return Set(right, desiredPrincipals, current);
+        }
+
+        /// <summary>
+        /// Reconciles the right using a provided snapshot of existing principals to avoid re-querying.
+        /// </summary>
+        public UserRightSetResult Set(UserRightsAssignment right, IEnumerable<string> desiredPrincipals, IReadOnlyList<PrincipalInfo> existingPrincipals) {
             if (desiredPrincipals == null) throw new ArgumentNullException(nameof(desiredPrincipals));
-            var existing = Get(right);
-            var existingSids = new HashSet<string>(existing.Select(e => e.SidString), StringComparer.OrdinalIgnoreCase);
+            if (existingPrincipals == null) throw new ArgumentNullException(nameof(existingPrincipals));
+
+            var existingSids = new HashSet<string>(existingPrincipals.Select(e => e.SidString), StringComparer.OrdinalIgnoreCase);
 
             var desiredSidSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var unresolved = new List<string>();
             foreach (var principal in desiredPrincipals) {
                 if (string.IsNullOrWhiteSpace(principal)) continue;
-                using (var sid = new Win32SecurityIdentifier(principal)) {
-                    desiredSidSet.Add(sid.SecurityIdentifier.Value);
+                try {
+                    using (var sid = new Win32SecurityIdentifier(principal)) {
+                        desiredSidSet.Add(sid.SecurityIdentifier.Value);
+                    }
+                } catch {
+                    unresolved.Add(principal);
                 }
             }
 
@@ -219,7 +235,7 @@ namespace LocalSecurityEditor {
                 _lsa.RemovePrivileges(sid, right);
             }
 
-            return new UserRightSetResult(right, added: toAdd, removed: toRemove);
+            return new UserRightSetResult(right, added: toAdd, removed: toRemove, unresolved: unresolved);
         }
 
         // Overloads for typed identities
@@ -298,12 +314,24 @@ namespace LocalSecurityEditor {
         public bool Changed => (Added.Count + Removed.Count) > 0;
 
         /// <summary>
+        /// Principals that could not be resolved to SIDs during the Set operation.
+        /// </summary>
+        public IReadOnlyList<string> Unresolved { get; }
+
+        /// <summary>
         /// Creates a new result instance.
         /// </summary>
-        public UserRightSetResult(UserRightsAssignment right, IEnumerable<string> added, IEnumerable<string> removed) {
+        public UserRightSetResult(UserRightsAssignment right, IEnumerable<string> added, IEnumerable<string> removed)
+            : this(right, added, removed, Array.Empty<string>()) { }
+
+        /// <summary>
+        /// Creates a new result instance including unresolved principals.
+        /// </summary>
+        public UserRightSetResult(UserRightsAssignment right, IEnumerable<string> added, IEnumerable<string> removed, IEnumerable<string> unresolved) {
             Right = right;
             Added = added.ToArray();
             Removed = removed.ToArray();
+            Unresolved = unresolved.ToArray();
         }
 
         /// <summary>

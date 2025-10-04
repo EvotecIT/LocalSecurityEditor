@@ -1,9 +1,12 @@
 ﻿# LocalSecurityEditor - .NET Library
 
 <p align="center">
-  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
-  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="Nuget" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
-  <a href="#"><img src="https://img.shields.io/badge/targets-net472%20|%20netstandard2.0%20|%20net8.0--windows%20|%20net9.0--windows-blue"></a>
+  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="NuGet" src="https://img.shields.io/nuget/dt/LocalSecurityEditor?label=nuget%20downloads"></a>
+  <a href="https://www.nuget.org/packages/LocalSecurityEditor"><img alt="NuGet" src="https://img.shields.io/nuget/v/LocalSecurityEditor"></a>
+  <a href="#"><img alt=".NET Framework" src="https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4"></a>
+  <a href="#"><img alt=".NET Standard" src="https://img.shields.io/badge/.NET%20Standard-2.0-512BD4"></a>
+  <a href="#"><img alt=".NET (Windows)" src="https://img.shields.io/badge/.NET%20(Windows)-8.0%20%7C%209.0-512BD4"></a>
+  <a href="#"><img alt="Platform" src="https://img.shields.io/badge/Platform-Windows--only-blue"></a>
 </p>
 
 <p align="center">

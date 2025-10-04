@@ -21,10 +21,11 @@ namespace LocalSecurityEditor {
 
         /// <summary>
         /// Asynchronously gets the current state for a specific right.
+        /// Note: creates a short-lived <see cref="UserRights"/>; for many calls prefer reusing an instance.
         /// </summary>
-        public static Task<UserRightState> GetAsync(this UserRightsAssignment right, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task<UserRightState> GetAsync(this UserRightsAssignment right, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.GetStateAsync(right, cancellationToken);
+                return await mgr.GetStateAsync(right, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -40,9 +41,9 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Asynchronously grants the specified right to a principal.
         /// </summary>
-        public static Task AddAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task AddAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.AddAsync(right, new [] { principal }, cancellationToken);
+                await mgr.AddAsync(right, new [] { principal }, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -58,9 +59,9 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Asynchronously grants the specified right to a sequence of principals.
         /// </summary>
-        public static Task AddAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task AddAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.AddAsync(right, principals, cancellationToken);
+                await mgr.AddAsync(right, principals, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -76,9 +77,9 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Asynchronously removes the specified right from a principal.
         /// </summary>
-        public static Task RemoveAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task RemoveAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.RemoveAsync(right, new [] { principal }, cancellationToken);
+                await mgr.RemoveAsync(right, new [] { principal }, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -94,9 +95,9 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Asynchronously removes the specified right from a sequence of principals.
         /// </summary>
-        public static Task RemoveAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task RemoveAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.RemoveAsync(right, principals, cancellationToken);
+                await mgr.RemoveAsync(right, principals, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -112,9 +113,9 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Asynchronously reconciles the right so that exactly the provided principals remain.
         /// </summary>
-        public static Task<UserRightSetResult> SetAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
+        public static async Task<UserRightSetResult> SetAsync(this UserRightsAssignment right, IEnumerable<string> principals, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                return mgr.SetAsync(right, principals, cancellationToken);
+                return await mgr.SetAsync(right, principals, cancellationToken).ConfigureAwait(false);
             }
         }
     }
