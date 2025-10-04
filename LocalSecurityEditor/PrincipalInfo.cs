@@ -1,4 +1,3 @@
-using System;
 using System.Security.Principal;
 using System.Threading;
 #if NET5_0_OR_GREATER

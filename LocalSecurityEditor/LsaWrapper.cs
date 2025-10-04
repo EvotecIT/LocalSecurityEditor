@@ -215,94 +215,93 @@ namespace LocalSecurityEditor {
             _rwLock.EnterReadLock();
             try {
                 if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
-            LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-            privileges[0] = InitLsaString(privilege.ToString());
+                LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                privileges[0] = InitLsaString(privilege.ToString());
 
-            IntPtr buffer;
-            int count;
-            uint ret = Win32Sec.LsaEnumerateAccountsWithUserRight(lsaHandle, privileges, out buffer, out count);
+                IntPtr buffer;
+                int count;
+                uint ret = Win32Sec.LsaEnumerateAccountsWithUserRight(lsaHandle, privileges, out buffer, out count);
 
-            if (ret != 0) {
-                if (ret == STATUS_ACCESS_DENIED) {
-                    throw new UnauthorizedAccessException();
+                if (ret != 0) {
+                    if (ret == STATUS_ACCESS_DENIED) {
+                        throw new UnauthorizedAccessException();
+                    }
+
+                    if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
+                        throw new OutOfMemoryException();
+                    }
+
+                    // meaning there are no accounts (empty)
+                    if (ret == STATUS_NO_MORE_ENTRIES) {
+                        return Array.Empty<string>();
+                    }
+
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
                 }
 
-                if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
-                    throw new OutOfMemoryException();
+                // Build array of LSA_ENUMERATION_INFORMATION for the lookup call
+                LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
+                IntPtr enumOffset = buffer;
+                for (int i = 0; i < count; i++) {
+                    lsaInfo[i] = Marshal.PtrToStructure<LSA_ENUMERATION_INFORMATION>(enumOffset);
+                    enumOffset = IntPtr.Add(enumOffset, Marshal.SizeOf<LSA_ENUMERATION_INFORMATION>());
                 }
 
-                // meaning there are no accounts (empty)
-                if (ret == STATUS_NO_MORE_ENTRIES) {
-                    return Array.Empty<string>();
+                // Lookup the SIDs to get domain and account names
+                IntPtr domainPtr;
+                IntPtr namePtr;
+                ret = Win32Sec.LsaLookupSids(lsaHandle, lsaInfo.Length, buffer, out domainPtr, out namePtr);
+
+                if (ret != 0 && ret != STATUS_SOME_NOT_MAPPED && ret != STATUS_NONE_MAPPED) {
+                    if (ret == STATUS_ACCESS_DENIED) {
+                        throw new UnauthorizedAccessException();
+                    }
+
+                    if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
+                        throw new OutOfMemoryException();
+                    }
+
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
                 }
 
-                throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
-            }
-
-            // Build array of LSA_ENUMERATION_INFORMATION for the lookup call
-            LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
-            IntPtr enumOffset = buffer;
-            for (int i = 0; i < count; i++) {
-                lsaInfo[i] = Marshal.PtrToStructure<LSA_ENUMERATION_INFORMATION>(enumOffset);
-                enumOffset = IntPtr.Add(enumOffset, Marshal.SizeOf<LSA_ENUMERATION_INFORMATION>());
-            }
-
-            // Lookup the SIDs to get domain and account names
-            IntPtr domainPtr;
-            IntPtr namePtr;
-            ret = Win32Sec.LsaLookupSids(lsaHandle, lsaInfo.Length, buffer, out domainPtr, out namePtr);
-
-            if (ret != 0 && ret != STATUS_SOME_NOT_MAPPED && ret != STATUS_NONE_MAPPED) {
-                if (ret == STATUS_ACCESS_DENIED) {
-                    throw new UnauthorizedAccessException();
+                // Marshal translated names
+                LSA_TRANSLATED_NAME[] lsaNames = new LSA_TRANSLATED_NAME[count];
+                IntPtr nameOffset = namePtr;
+                for (int i = 0; i < count; i++) {
+                    lsaNames[i] = Marshal.PtrToStructure<LSA_TRANSLATED_NAME>(nameOffset);
+                    nameOffset = IntPtr.Add(nameOffset, Marshal.SizeOf<LSA_TRANSLATED_NAME>());
                 }
 
-                if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
-                    throw new OutOfMemoryException();
+                // Marshal referenced domains list
+                LSA_REFERENCED_DOMAIN_LIST domainList = Marshal.PtrToStructure<LSA_REFERENCED_DOMAIN_LIST>(domainPtr);
+                string[] domainNames = new string[domainList.Entries];
+                IntPtr domainInfoPtr = domainList.Domains;
+                for (int i = 0; i < domainList.Entries; i++) {
+                    LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
+                    domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
+                    LSA_UNICODE_STRING dname = info.Name;
+                    domainNames[i] = TrimLsaString(dname);
                 }
 
-                throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
-            }
-
-            // Marshal translated names
-            LSA_TRANSLATED_NAME[] lsaNames = new LSA_TRANSLATED_NAME[count];
-            IntPtr nameOffset = namePtr;
-            for (int i = 0; i < count; i++) {
-                lsaNames[i] = Marshal.PtrToStructure<LSA_TRANSLATED_NAME>(nameOffset);
-                nameOffset = IntPtr.Add(nameOffset, Marshal.SizeOf<LSA_TRANSLATED_NAME>());
-            }
-
-            // Marshal referenced domains list
-            LSA_REFERENCED_DOMAIN_LIST domainList = Marshal.PtrToStructure<LSA_REFERENCED_DOMAIN_LIST>(domainPtr);
-            string[] domainNames = new string[domainList.Entries];
-            IntPtr domainInfoPtr = domainList.Domains;
-            for (int i = 0; i < domainList.Entries; i++) {
-                LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
-                domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
-                LSA_UNICODE_STRING dname = info.Name;
-                domainNames[i] = TrimLsaString(dname);
-            }
-
-            // Build domain-qualified account names
-            string[] accountNames = new string[count];
-            for (int i = 0; i < lsaNames.Length; i++) {
-                LSA_UNICODE_STRING uname = lsaNames[i].Name;
-                string user = TrimLsaString(uname);
-                int domainIndex = lsaNames[i].DomainIndex;
-                if (domainIndex >= 0 && domainIndex < domainNames.Length && !string.IsNullOrEmpty(domainNames[domainIndex])) {
-                    accountNames[i] = domainNames[domainIndex] + "\\" + user;
-                } else {
-                    accountNames[i] = user;
+                // Build domain-qualified account names
+                string[] accountNames = new string[count];
+                for (int i = 0; i < lsaNames.Length; i++) {
+                    LSA_UNICODE_STRING uname = lsaNames[i].Name;
+                    string user = TrimLsaString(uname);
+                    int domainIndex = lsaNames[i].DomainIndex;
+                    if (domainIndex >= 0 && domainIndex < domainNames.Length && !string.IsNullOrEmpty(domainNames[domainIndex])) {
+                        accountNames[i] = domainNames[domainIndex] + "\\" + user;
+                    } else {
+                        accountNames[i] = user;
+                    }
                 }
-            }
 
-            Win32Sec.LsaFreeMemory(buffer);
-            Win32Sec.LsaFreeMemory(domainPtr);
-            Win32Sec.LsaFreeMemory(namePtr);
+                Win32Sec.LsaFreeMemory(buffer);
+                Win32Sec.LsaFreeMemory(domainPtr);
+                Win32Sec.LsaFreeMemory(namePtr);
 
-            return accountNames;
-            }
-            finally { _rwLock.ExitReadLock(); }
+                return accountNames;
+            } finally { _rwLock.ExitReadLock(); }
         }
 
         /// <summary>
@@ -317,105 +316,104 @@ namespace LocalSecurityEditor {
             _rwLock.EnterReadLock();
             try {
                 if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
-            LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-            privileges[0] = InitLsaString(privilege.ToString());
+                LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                privileges[0] = InitLsaString(privilege.ToString());
 
-            IntPtr buffer;
-            int count;
-            uint ret = Win32Sec.LsaEnumerateAccountsWithUserRight(lsaHandle, privileges, out buffer, out count);
+                IntPtr buffer;
+                int count;
+                uint ret = Win32Sec.LsaEnumerateAccountsWithUserRight(lsaHandle, privileges, out buffer, out count);
 
-            if (ret != 0) {
-                if (ret == STATUS_ACCESS_DENIED) {
-                    throw new UnauthorizedAccessException();
-                }
-                if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
-                    throw new OutOfMemoryException();
-                }
-                if (ret == STATUS_NO_MORE_ENTRIES) {
-                    return Array.Empty<PrincipalInfo>();
-                }
-                throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
-            }
-
-            // Build array of LSA_ENUMERATION_INFORMATION for the lookup call
-            LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
-            IntPtr enumOffset = buffer;
-            for (int i = 0; i < count; i++) {
-                lsaInfo[i] = Marshal.PtrToStructure<LSA_ENUMERATION_INFORMATION>(enumOffset);
-                enumOffset = IntPtr.Add(enumOffset, Marshal.SizeOf<LSA_ENUMERATION_INFORMATION>());
-            }
-
-            // Lookup the SIDs to get domain and account names
-            IntPtr domainPtr;
-            IntPtr namePtr;
-            ret = Win32Sec.LsaLookupSids(lsaHandle, lsaInfo.Length, buffer, out domainPtr, out namePtr);
-            if (ret != 0 && ret != STATUS_SOME_NOT_MAPPED && ret != STATUS_NONE_MAPPED) {
-                if (ret == STATUS_ACCESS_DENIED) {
-                    throw new UnauthorizedAccessException();
-                }
-                if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
-                    throw new OutOfMemoryException();
-                }
-                throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
-            }
-
-            LSA_TRANSLATED_NAME[] lsaNames = new LSA_TRANSLATED_NAME[count];
-            IntPtr nameOffset = namePtr;
-            for (int i = 0; i < count; i++) {
-                lsaNames[i] = Marshal.PtrToStructure<LSA_TRANSLATED_NAME>(nameOffset);
-                nameOffset = IntPtr.Add(nameOffset, Marshal.SizeOf<LSA_TRANSLATED_NAME>());
-            }
-
-            LSA_REFERENCED_DOMAIN_LIST domainList = Marshal.PtrToStructure<LSA_REFERENCED_DOMAIN_LIST>(domainPtr);
-            string[] domainNames = new string[domainList.Entries];
-            IntPtr domainInfoPtr = domainList.Domains;
-            for (int i = 0; i < domainList.Entries; i++) {
-                LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
-                domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
-                LSA_UNICODE_STRING dname = info.Name;
-                domainNames[i] = TrimLsaString(dname);
-            }
-
-            var principals = new PrincipalInfo[count];
-            for (int i = 0; i < count; i++) {
-                string domain = null;
-                string user = null;
-                if (i < lsaNames.Length) {
-                    user = TrimLsaString(lsaNames[i].Name);
-                    int idx = lsaNames[i].DomainIndex;
-                    if (idx >= 0 && idx < domainNames.Length && !string.IsNullOrEmpty(domainNames[idx])) {
-                        domain = domainNames[idx];
+                if (ret != 0) {
+                    if (ret == STATUS_ACCESS_DENIED) {
+                        throw new UnauthorizedAccessException();
                     }
+                    if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
+                        throw new OutOfMemoryException();
+                    }
+                    if (ret == STATUS_NO_MORE_ENTRIES) {
+                        return Array.Empty<PrincipalInfo>();
+                    }
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
                 }
 
-                string sidString = TryConvertSidToString(lsaInfo[i].PSid) ?? string.Empty;
-                // Fallback lookup on the target system if unresolved
-                SidNameUse use = (i < lsaNames.Length ? lsaNames[i].Use : SidNameUse.Unknown);
-                if (string.IsNullOrEmpty(user) || use == SidNameUse.Unknown || use == SidNameUse.Invalid) {
-                    if (!string.IsNullOrEmpty(sidString) && SidLruCache.TryGet(sidString, out var cached)) {
-                        if (!string.IsNullOrEmpty(cached.Name)) user = cached.Name;
-                        if (!string.IsNullOrEmpty(cached.Domain)) domain = cached.Domain;
-                        if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = cached.Use;
-                    } else if (TryLookupAccountSidRemote(lsaInfo[i].PSid, out string fDomain, out string fUser, out SidNameUse fUse)) {
-                        if (!string.IsNullOrEmpty(fUser)) user = fUser;
-                        if (!string.IsNullOrEmpty(fDomain)) domain = fDomain;
-                        if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
-                        if (!string.IsNullOrEmpty(sidString)) {
-                            SidLruCache.Set(sidString, new SidInfo { Domain = fDomain, Name = fUser, Use = fUse });
+                // Build array of LSA_ENUMERATION_INFORMATION for the lookup call
+                LSA_ENUMERATION_INFORMATION[] lsaInfo = new LSA_ENUMERATION_INFORMATION[count];
+                IntPtr enumOffset = buffer;
+                for (int i = 0; i < count; i++) {
+                    lsaInfo[i] = Marshal.PtrToStructure<LSA_ENUMERATION_INFORMATION>(enumOffset);
+                    enumOffset = IntPtr.Add(enumOffset, Marshal.SizeOf<LSA_ENUMERATION_INFORMATION>());
+                }
+
+                // Lookup the SIDs to get domain and account names
+                IntPtr domainPtr;
+                IntPtr namePtr;
+                ret = Win32Sec.LsaLookupSids(lsaHandle, lsaInfo.Length, buffer, out domainPtr, out namePtr);
+                if (ret != 0 && ret != STATUS_SOME_NOT_MAPPED && ret != STATUS_NONE_MAPPED) {
+                    if (ret == STATUS_ACCESS_DENIED) {
+                        throw new UnauthorizedAccessException();
+                    }
+                    if (ret == STATUS_INSUFFICIENT_RESOURCES || ret == STATUS_NO_MEMORY) {
+                        throw new OutOfMemoryException();
+                    }
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)ret));
+                }
+
+                LSA_TRANSLATED_NAME[] lsaNames = new LSA_TRANSLATED_NAME[count];
+                IntPtr nameOffset = namePtr;
+                for (int i = 0; i < count; i++) {
+                    lsaNames[i] = Marshal.PtrToStructure<LSA_TRANSLATED_NAME>(nameOffset);
+                    nameOffset = IntPtr.Add(nameOffset, Marshal.SizeOf<LSA_TRANSLATED_NAME>());
+                }
+
+                LSA_REFERENCED_DOMAIN_LIST domainList = Marshal.PtrToStructure<LSA_REFERENCED_DOMAIN_LIST>(domainPtr);
+                string[] domainNames = new string[domainList.Entries];
+                IntPtr domainInfoPtr = domainList.Domains;
+                for (int i = 0; i < domainList.Entries; i++) {
+                    LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
+                    domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
+                    LSA_UNICODE_STRING dname = info.Name;
+                    domainNames[i] = TrimLsaString(dname);
+                }
+
+                var principals = new PrincipalInfo[count];
+                for (int i = 0; i < count; i++) {
+                    string domain = null;
+                    string user = null;
+                    if (i < lsaNames.Length) {
+                        user = TrimLsaString(lsaNames[i].Name);
+                        int idx = lsaNames[i].DomainIndex;
+                        if (idx >= 0 && idx < domainNames.Length && !string.IsNullOrEmpty(domainNames[idx])) {
+                            domain = domainNames[idx];
                         }
                     }
+
+                    string sidString = TryConvertSidToString(lsaInfo[i].PSid) ?? string.Empty;
+                    // Fallback lookup on the target system if unresolved
+                    SidNameUse use = (i < lsaNames.Length ? lsaNames[i].Use : SidNameUse.Unknown);
+                    if (string.IsNullOrEmpty(user) || use == SidNameUse.Unknown || use == SidNameUse.Invalid) {
+                        if (!string.IsNullOrEmpty(sidString) && SidLruCache.TryGet(sidString, out var cached)) {
+                            if (!string.IsNullOrEmpty(cached.Name)) user = cached.Name;
+                            if (!string.IsNullOrEmpty(cached.Domain)) domain = cached.Domain;
+                            if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = cached.Use;
+                        } else if (TryLookupAccountSidRemote(lsaInfo[i].PSid, out string fDomain, out string fUser, out SidNameUse fUse)) {
+                            if (!string.IsNullOrEmpty(fUser)) user = fUser;
+                            if (!string.IsNullOrEmpty(fDomain)) domain = fDomain;
+                            if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
+                            if (!string.IsNullOrEmpty(sidString)) {
+                                SidLruCache.Set(sidString, new SidInfo { Domain = fDomain, Name = fUser, Use = fUse });
+                            }
+                        }
+                    }
+
+                    principals[i] = new PrincipalInfo(sidString, domain, user, use);
                 }
 
-                principals[i] = new PrincipalInfo(sidString, domain, user, use);
-            }
+                Win32Sec.LsaFreeMemory(buffer);
+                Win32Sec.LsaFreeMemory(domainPtr);
+                Win32Sec.LsaFreeMemory(namePtr);
 
-            Win32Sec.LsaFreeMemory(buffer);
-            Win32Sec.LsaFreeMemory(domainPtr);
-            Win32Sec.LsaFreeMemory(namePtr);
-
-            return principals;
-            }
-            finally { _rwLock.ExitReadLock(); }
+                return principals;
+            } finally { _rwLock.ExitReadLock(); }
         }
 
         private static string TryConvertSidToString(IntPtr sidPtr) {
@@ -483,21 +481,20 @@ namespace LocalSecurityEditor {
             _rwLock.EnterWriteLock();
             try {
                 if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
-            //IntPtr pSid = GetSIDInformation(account);
-            try {
-                uint ret;
-                using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
-                    LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-                    privileges[0] = InitLsaString(privilege.ToString());
-                    ret = Win32Sec.LsaAddAccountRights(lsaHandle, securityIdentifier.Address, privileges, 1);
-                }
+                //IntPtr pSid = GetSIDInformation(account);
+                try {
+                    uint ret;
+                    using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
+                        LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                        privileges[0] = InitLsaString(privilege.ToString());
+                        ret = Win32Sec.LsaAddAccountRights(lsaHandle, securityIdentifier.Address, privileges, 1);
+                    }
 
-                TestReturnValue(ret);
-            } catch {
-                throw;
-            }
-            }
-            finally { _rwLock.ExitWriteLock(); }
+                    TestReturnValue(ret);
+                } catch {
+                    throw;
+                }
+            } finally { _rwLock.ExitWriteLock(); }
         }
 
         /// <summary>
@@ -509,21 +506,20 @@ namespace LocalSecurityEditor {
             _rwLock.EnterWriteLock();
             try {
                 if (lsaHandle == IntPtr.Zero) throw new ObjectDisposedException(nameof(LsaWrapper));
-            //IntPtr pSid = GetSIDInformation(account);
-            try {
-                uint ret;
-                using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
-                    LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
-                    privileges[0] = InitLsaString(privilege.ToString());
-                    ret = Win32Sec.LsaRemoveAccountRights(lsaHandle, securityIdentifier.Address, false, privileges, 1);
-                }
+                //IntPtr pSid = GetSIDInformation(account);
+                try {
+                    uint ret;
+                    using (Win32SecurityIdentifier securityIdentifier = new Win32SecurityIdentifier(account)) {
+                        LSA_UNICODE_STRING[] privileges = new LSA_UNICODE_STRING[1];
+                        privileges[0] = InitLsaString(privilege.ToString());
+                        ret = Win32Sec.LsaRemoveAccountRights(lsaHandle, securityIdentifier.Address, false, privileges, 1);
+                    }
 
-                TestReturnValue(ret);
-            } catch {
-                throw;
-            }
-            }
-            finally { _rwLock.ExitWriteLock(); }
+                    TestReturnValue(ret);
+                } catch {
+                    throw;
+                }
+            } finally { _rwLock.ExitWriteLock(); }
         }
 
         /// <summary>
@@ -562,8 +558,7 @@ namespace LocalSecurityEditor {
                     Win32Sec.LsaClose(lsaHandle);
                     lsaHandle = IntPtr.Zero;
                 }
-            }
-            finally { _rwLock.ExitWriteLock(); }
+            } finally { _rwLock.ExitWriteLock(); }
             GC.SuppressFinalize(this);
         }
 

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Security.Principal;
+﻿using LocalSecurityEditor;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
-
-using LocalSecurityEditor;
 
 namespace TestApp {
     internal class Program {
@@ -41,11 +38,11 @@ namespace TestApp {
         private static void Example_UserRightsApi_Remote(string computer) {
             using (var ur = new UserRights(computer)) {
                 // add by account name or SID
-                ur.Add(UserRightsAssignment.SeBatchLogonRight, new [] { @"DOMAIN\\svc_batch" });
+                ur.Add(UserRightsAssignment.SeBatchLogonRight, new[] { @"DOMAIN\\svc_batch" });
 
                 // reconcile set for a right
                 var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
-                    new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
+                    new[] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
                 Console.WriteLine(result);
             }
         }
