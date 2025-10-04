@@ -5,6 +5,8 @@ using System.Security.Principal;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
 #endif
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace LocalSecurityEditor {
     /// <summary>
@@ -82,6 +84,50 @@ namespace LocalSecurityEditor {
             }
             return list;
         }
+
+        // -------- Async convenience APIs (offload blocking LSA calls to the thread pool) --------
+
+        /// <summary>
+        /// Asynchronously gets the full state for a specific user right.
+        /// </summary>
+        public Task<UserRightState> GetStateAsync(UserRightsAssignment right, CancellationToken cancellationToken = default)
+            => Task.Run(() => GetState(right), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously enumerates the state for all user rights.
+        /// </summary>
+        public Task<IReadOnlyList<UserRightState>> EnumerateAsync(CancellationToken cancellationToken = default)
+            => Task.Run(() => (IReadOnlyList<UserRightState>)Enumerate(), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously returns a map keyed by <see cref="UserRightsAssignment"/>.
+        /// </summary>
+        public Task<Dictionary<UserRightsAssignment, UserRightState>> GetByRightAsync(CancellationToken cancellationToken = default)
+            => Task.Run(() => GetByRight(), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously returns a map keyed by the short name of each right.
+        /// </summary>
+        public Task<Dictionary<string, UserRightState>> GetByShortNameAsync(StringComparer comparer = null, CancellationToken cancellationToken = default)
+            => Task.Run(() => GetByShortName(comparer), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously grants a right to each of the specified principals.
+        /// </summary>
+        public Task AddAsync(UserRightsAssignment right, IEnumerable<string> principals, CancellationToken cancellationToken = default)
+            => Task.Run(() => Add(right, principals), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously removes a right from each of the specified principals.
+        /// </summary>
+        public Task RemoveAsync(UserRightsAssignment right, IEnumerable<string> principals, CancellationToken cancellationToken = default)
+            => Task.Run(() => Remove(right, principals), cancellationToken);
+
+        /// <summary>
+        /// Asynchronously sets the exact principal set for a given right.
+        /// </summary>
+        public Task<UserRightSetResult> SetAsync(UserRightsAssignment right, IEnumerable<string> desiredPrincipals, CancellationToken cancellationToken = default)
+            => Task.Run(() => Set(right, desiredPrincipals), cancellationToken);
 
         /// <summary>
         /// Returns a map keyed by <see cref="UserRightsAssignment"/> for convenient lookup.

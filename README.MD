@@ -220,6 +220,21 @@ using (var ur = new UserRights("SERVER01")) {
 // using var ur = new UserRights();
 // ur.Add(right, new [] { "user1", "user2", "user3" });
 
+### Async APIs
+
+// Query a single right asynchronously (local)
+var state = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, ct);
+
+// Enumerate all rights asynchronously (remote)
+var all = await new UserRights("SERVER01").EnumerateAsync(ct);
+
+// Grant/remove asynchronously
+await new UserRights().AddAsync(UserRightsAssignment.SeBatchLogonRight, new[] { @"DOMAIN\\user1" }, ct);
+await new UserRights().RemoveAsync(UserRightsAssignment.SeBatchLogonRight, new[] { @"DOMAIN\\user1" }, ct);
+
+// Fluent async extensions
+var svc = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
+
 ### Aggregate URA Objects (PowerShell-friendly)
 
 ```csharp

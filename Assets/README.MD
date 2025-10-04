@@ -202,6 +202,19 @@ using (var ur = new UserRights("SERVER01")) {
 
 ```
 
+### Async APIs
+
+```csharp
+// Single right (local)
+var svc = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, ct);
+
+// Enumerate all (remote)
+var all = await new UserRights("SERVER01").EnumerateAsync(ct);
+
+// Fluent async extensions
+var svc2 = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct);
+```
+
 ### Generate service SIDs
 
 ```csharp
