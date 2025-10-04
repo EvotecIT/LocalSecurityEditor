@@ -286,7 +286,11 @@ namespace LocalSecurityEditor {
         /// </summary>
         public void Dispose() {
             if (System.Threading.Interlocked.Exchange(ref _disposedFlag, 1) == 1) return;
-            _lsa.Dispose();
+            try {
+                _lsa.Dispose();
+            } catch {
+                // Intentionally swallow exceptions during dispose to avoid tearing down callers.
+            }
         }
     }
 

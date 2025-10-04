@@ -50,7 +50,7 @@ namespace LocalSecurityEditor {
         private readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls
         private struct SidInfo { public string Domain; public string Name; public SidNameUse Use; }
-        private static readonly ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
+        private static ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
         private const int MAX_SID_CACHE = 4096;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -358,8 +358,9 @@ namespace LocalSecurityEditor {
                         if (!string.IsNullOrEmpty(sidString)) {
                             s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
                             if (s_sidCache.Count > MAX_SID_CACHE) {
-                                // simple bound: clear when exceeding max to prevent unbounded growth
-                                s_sidCache.Clear();
+                                // Replace atomically to avoid races while trimming the cache
+                                var newCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
+                                Interlocked.Exchange(ref s_sidCache, newCache);
                             }
                         }
                     }
