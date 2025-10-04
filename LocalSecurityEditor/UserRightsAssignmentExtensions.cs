@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,7 +42,7 @@ namespace LocalSecurityEditor {
         /// </summary>
         public static async Task AddAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                await mgr.AddAsync(right, new [] { principal }, cancellationToken).ConfigureAwait(false);
+                await mgr.AddAsync(right, new[] { principal }, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -79,7 +78,7 @@ namespace LocalSecurityEditor {
         /// </summary>
         public static async Task RemoveAsync(this UserRightsAssignment right, string principal, string systemName = null, CancellationToken cancellationToken = default) {
             using (var mgr = new UserRights(systemName)) {
-                await mgr.RemoveAsync(right, new [] { principal }, cancellationToken).ConfigureAwait(false);
+                await mgr.RemoveAsync(right, new[] { principal }, cancellationToken).ConfigureAwait(false);
             }
         }
 
