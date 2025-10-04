@@ -4,7 +4,7 @@
 		<Description>.NET library for managing User Rights Assignment on Windows systems. It replicates the functionality of secedit.exe</Description>
 		<AssemblyName>LocalSecurityEditor</AssemblyName>
 		<AssemblyTitle>LocalSecurityEditor</AssemblyTitle>
-		<VersionPrefix>0.4.0</VersionPrefix>
+		<VersionPrefix>1.0.0</VersionPrefix>
 
 		<!--
 		  This library is Windows-only by design. Target modern TFMs with
