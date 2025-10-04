@@ -16,11 +16,7 @@ public class UserRightsAggregateTests
 
     private static int GetCatalogCount()
     {
-        // Reflect internal count via a convenience call: get all definitions through public API count
-        // Use the extension to build states (skipped on non-Windows before invoking native calls)
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return typeof(UserRightsAssignment).GetEnumValues().Length;
-
+        // Reflect internal count via public API
         var list = UserRights.Get();
         return list.Count;
     }

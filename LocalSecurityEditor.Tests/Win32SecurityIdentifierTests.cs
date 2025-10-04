@@ -9,11 +9,6 @@ public class Win32SecurityIdentifierTests
     [Fact]
     public void Constructor_InvalidPrincipal_RethrowsArgumentExceptionWithOriginalStackTrace()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return;
-        }
-
         var ex = Assert.Throws<ArgumentException>(() => new Win32SecurityIdentifier("NonExistentUser"));
         Assert.Contains("Win32SecurityIdentifier..ctor", ex.StackTrace);
     }

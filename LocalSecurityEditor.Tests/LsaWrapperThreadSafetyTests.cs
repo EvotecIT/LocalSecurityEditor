@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Xunit;
 
 namespace LocalSecurityEditor.Tests;
@@ -12,7 +11,6 @@ public class LsaWrapperThreadSafetyTests
     [Fact]
     public void Disposed_Then_GetPrivileges_Throws_ObjectDisposed()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         var lsa = new LsaWrapper();
         lsa.Dispose();
         Assert.Throws<ObjectDisposedException>(() => lsa.GetPrivileges(UserRightsAssignment.SeBatchLogonRight));
@@ -21,7 +19,6 @@ public class LsaWrapperThreadSafetyTests
     [Fact]
     public void Disposed_Then_AddPrivileges_Throws_ObjectDisposed()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         var lsa = new LsaWrapper();
         lsa.Dispose();
         Assert.Throws<ObjectDisposedException>(() => lsa.AddPrivileges("S-1-5-32-544", UserRightsAssignment.SeBatchLogonRight));
@@ -30,7 +27,6 @@ public class LsaWrapperThreadSafetyTests
     [Fact]
     public async Task Parallel_Reads_On_Disposed_Wrapper_Fail_Deterministically()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         var lsa = new LsaWrapper();
         lsa.Dispose();
         var rights = new []

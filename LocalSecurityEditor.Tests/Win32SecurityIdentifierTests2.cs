@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Security.Principal;
 using Xunit;
 
@@ -9,7 +8,6 @@ public class Win32SecurityIdentifierTests2
     [Fact]
     public void FromSecurityIdentifier_ExposesPinnedAddress()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         var sid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
         using var pinned = new Win32SecurityIdentifier(sid);
         Assert.NotEqual(System.IntPtr.Zero, pinned.Address);

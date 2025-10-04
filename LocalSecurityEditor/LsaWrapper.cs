@@ -107,6 +107,7 @@ namespace LocalSecurityEditor {
         const uint STATUS_INVALID_PARAMETER = 0xC000000D;
         const uint STATUS_INVALID_HANDLE = 0xC0000008;
 
+        private const int LSA_UNICODE_MAX_BYTES = 0x7ffe; // 32KB - 2 bytes
         IntPtr lsaHandle;
         private readonly string systemName;
 
@@ -555,7 +556,7 @@ namespace LocalSecurityEditor {
             }
 
             // Unicode strings max. 32KB
-            if (s.Length > 0x7ffe)
+            if (s.Length > LSA_UNICODE_MAX_BYTES)
                 throw new ArgumentException("String too long");
             LSA_UNICODE_STRING lus = new LSA_UNICODE_STRING();
             lus.Buffer = s;

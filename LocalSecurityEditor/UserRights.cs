@@ -14,7 +14,7 @@ namespace LocalSecurityEditor {
     /// </summary>
     public sealed class UserRights : IDisposable {
         private readonly LsaWrapper _lsa;
-        private volatile bool _disposed;
+        private volatile int _disposedFlag;
 
         /// <summary>
         /// Target system name this instance operates on, or <c>null</c> for the local machine.
@@ -283,9 +283,8 @@ namespace LocalSecurityEditor {
         /// Releases unmanaged resources held by this instance.
         /// </summary>
         public void Dispose() {
-            if (_disposed) return;
+            if (System.Threading.Interlocked.Exchange(ref _disposedFlag, 1) == 1) return;
             _lsa.Dispose();
-            _disposed = true;
         }
     }
 
