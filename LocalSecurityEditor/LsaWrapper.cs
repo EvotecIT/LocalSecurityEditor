@@ -1,6 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
 #if NET5_0_OR_GREATER
@@ -48,13 +48,55 @@ namespace LocalSecurityEditor {
     /// </remarks>
     public sealed class LsaWrapper : IDisposable {
         private readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls
+        // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls (bounded LRU)
         private struct SidInfo { public string Domain; public string Name; public SidNameUse Use; }
-        private static ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
-        private static readonly ConcurrentQueue<string> s_sidKeys = new ConcurrentQueue<string>();
-        private static int s_sidTrimInProgress;
-        private const int MAX_SID_CACHE = 4096;
-        private const int SID_TRIM_BATCH = 512;
+        private static class SidLruCache {
+            private static readonly object _lock = new object();
+            private const int Capacity = 4096;
+            private static readonly Dictionary<string, SidInfo> _map = new Dictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
+            private static readonly LinkedList<string> _lru = new LinkedList<string>();
+            private static readonly Dictionary<string, LinkedListNode<string>> _nodes = new Dictionary<string, LinkedListNode<string>>(StringComparer.OrdinalIgnoreCase);
+
+            public static bool TryGet(string key, out SidInfo value) {
+                lock (_lock) {
+                    if (_map.TryGetValue(key, out value)) {
+                        MoveToFront(key);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            public static void Set(string key, SidInfo value) {
+                lock (_lock) {
+                    if (_map.ContainsKey(key)) {
+                        _map[key] = value;
+                        MoveToFront(key);
+                        return;
+                    }
+                    var node = new LinkedListNode<string>(key);
+                    _lru.AddFirst(node);
+                    _nodes[key] = node;
+                    _map[key] = value;
+                    if (_map.Count > Capacity) {
+                        var last = _lru.Last;
+                        if (last != null) {
+                            var oldKey = last.Value;
+                            _lru.RemoveLast();
+                            _nodes.Remove(oldKey);
+                            _map.Remove(oldKey);
+                        }
+                    }
+                }
+            }
+
+            private static void MoveToFront(string key) {
+                if (_nodes.TryGetValue(key, out var node) && node.List != null) {
+                    _lru.Remove(node);
+                    _lru.AddFirst(node);
+                }
+            }
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_TRUST_INFORMATION {
@@ -350,7 +392,7 @@ namespace LocalSecurityEditor {
                 // Fallback lookup on the target system if unresolved
                 SidNameUse use = (i < lsaNames.Length ? lsaNames[i].Use : SidNameUse.Unknown);
                 if (string.IsNullOrEmpty(user) || use == SidNameUse.Unknown || use == SidNameUse.Invalid) {
-                    if (!string.IsNullOrEmpty(sidString) && s_sidCache.TryGetValue(sidString, out var cached)) {
+                    if (!string.IsNullOrEmpty(sidString) && SidLruCache.TryGet(sidString, out var cached)) {
                         if (!string.IsNullOrEmpty(cached.Name)) user = cached.Name;
                         if (!string.IsNullOrEmpty(cached.Domain)) domain = cached.Domain;
                         if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = cached.Use;
@@ -359,20 +401,7 @@ namespace LocalSecurityEditor {
                         if (!string.IsNullOrEmpty(fDomain)) domain = fDomain;
                         if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
                         if (!string.IsNullOrEmpty(sidString)) {
-                            s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
-                            s_sidKeys.Enqueue(sidString);
-                            if (s_sidCache.Count > MAX_SID_CACHE && Interlocked.CompareExchange(ref s_sidTrimInProgress, 1, 0) == 0) {
-                                try {
-                                    int removed = 0;
-                                    // Trim approximately in FIFO order to cap memory; not strict LRU but bounded
-                                    while (s_sidCache.Count > (MAX_SID_CACHE - SID_TRIM_BATCH) && s_sidKeys.TryDequeue(out var oldKey)) {
-                                        s_sidCache.TryRemove(oldKey, out _);
-                                        if (++removed >= SID_TRIM_BATCH) break;
-                                    }
-                                } finally {
-                                    Volatile.Write(ref s_sidTrimInProgress, 0);
-                                }
-                            }
+                            SidLruCache.Set(sidString, new SidInfo { Domain = fDomain, Name = fUser, Use = fUse });
                         }
                     }
                 }

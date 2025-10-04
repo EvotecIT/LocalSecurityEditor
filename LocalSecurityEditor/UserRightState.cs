@@ -88,6 +88,6 @@ namespace LocalSecurityEditor {
         /// <summary>
         /// Returns a concise summary string for diagnostics.
         /// </summary>
-        public override string ToString() { return Name + " (" + ShortName + ") : " + Count + " principals"; }
+        public override string ToString() => $"{Name} ({ShortName}) : {Count} principals";
     }
 }

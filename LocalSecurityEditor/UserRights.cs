@@ -300,8 +300,8 @@ namespace LocalSecurityEditor {
             if (System.Threading.Interlocked.Exchange(ref _disposedFlag, 1) == 1) return;
             try {
                 _lsa.Dispose();
-            } catch {
-                // Intentionally swallow exceptions during dispose to avoid tearing down callers.
+            } catch (Exception ex) {
+                Diagnostics.OnError?.Invoke("UserRights.Dispose failed", ex);
             }
         }
     }
