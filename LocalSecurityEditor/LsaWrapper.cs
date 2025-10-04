@@ -63,10 +63,12 @@ namespace LocalSecurityEditor {
         }
 
         enum Access : int {
-            POLICY_READ = 0x20006,
-            POLICY_ALL_ACCESS = 0x00F0FFF,
-            POLICY_EXECUTE = 0X20801,
-            POLICY_WRITE = 0X207F8
+            POLICY_VIEW_LOCAL_INFORMATION = 0x00000001,
+            POLICY_LOOKUP_NAMES = 0x00000800,
+            POLICY_READ = 0x00020006,
+            POLICY_WRITE = 0x000207F8,
+            POLICY_EXECUTE = 0x00020801,
+            POLICY_ALL_ACCESS = 0x00F0FFF
         }
         const uint STATUS_ACCESS_DENIED = 0xc0000022;
         const uint STATUS_INSUFFICIENT_RESOURCES = 0xc000009a;
@@ -100,7 +102,8 @@ namespace LocalSecurityEditor {
                 system[0] = InitLsaString(systemName);
             }
 
-            uint ret = Win32Sec.LsaOpenPolicy(system, ref lsaAttr, (int)Access.POLICY_ALL_ACCESS, out lsaHandle);
+            // Use minimal required access; lookup names covers enumerate/add/remove rights operations
+            uint ret = Win32Sec.LsaOpenPolicy(system, ref lsaAttr, (int)Access.POLICY_LOOKUP_NAMES, out lsaHandle);
             if (ret == 0) {
                 return;
             }
@@ -182,15 +185,14 @@ namespace LocalSecurityEditor {
                 LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
                 domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
                 LSA_UNICODE_STRING dname = info.Name;
-                domainNames[i] = dname.Buffer != null ? dname.Buffer.Substring(0, dname.Length / 2) : string.Empty;
+                domainNames[i] = TrimLsaString(dname);
             }
 
             // Build domain-qualified account names
             string[] accountNames = new string[count];
             for (int i = 0; i < lsaNames.Length; i++) {
                 LSA_UNICODE_STRING uname = lsaNames[i].Name;
-                // LPWStr marshaling already provides a full string; Length is in bytes but Buffer is null-terminated.
-                string user = uname.Buffer ?? string.Empty;
+                string user = TrimLsaString(uname);
                 int domainIndex = lsaNames[i].DomainIndex;
                 if (domainIndex >= 0 && domainIndex < domainNames.Length && !string.IsNullOrEmpty(domainNames[domainIndex])) {
                     accountNames[i] = domainNames[domainIndex] + "\\" + user;
@@ -266,7 +268,7 @@ namespace LocalSecurityEditor {
                 LSA_TRUST_INFORMATION info = Marshal.PtrToStructure<LSA_TRUST_INFORMATION>(domainInfoPtr);
                 domainInfoPtr = IntPtr.Add(domainInfoPtr, Marshal.SizeOf<LSA_TRUST_INFORMATION>());
                 LSA_UNICODE_STRING dname = info.Name;
-                domainNames[i] = dname.Buffer ?? string.Empty;
+                domainNames[i] = TrimLsaString(dname);
             }
 
             var principals = new PrincipalInfo[count];
@@ -274,7 +276,7 @@ namespace LocalSecurityEditor {
                 string domain = null;
                 string user = null;
                 if (i < lsaNames.Length) {
-                    user = lsaNames[i].Name.Buffer;
+                    user = TrimLsaString(lsaNames[i].Name);
                     int idx = lsaNames[i].DomainIndex;
                     if (idx >= 0 && idx < domainNames.Length && !string.IsNullOrEmpty(domainNames[idx])) {
                         domain = domainNames[idx];
@@ -417,7 +419,7 @@ namespace LocalSecurityEditor {
                 case STATUS_NO_MEMORY:
                     throw new OutOfMemoryException();
                 case STATUS_OBJECT_NAME_NOT_FOUND:
-                    throw new Exception("Object not found");
+                    throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)returnValue));
                 default:
                     throw new Win32Exception(Win32Sec.LsaNtStatusToWinError((int)returnValue));
             }
@@ -480,6 +482,13 @@ namespace LocalSecurityEditor {
             //lus.MaximumLength = (ushort)(lus.Length + 2)
 
             return lus;
+        }
+
+        private static string TrimLsaString(LSA_UNICODE_STRING lus) {
+            if (lus.Buffer == null) return string.Empty;
+            int chars = lus.Length / 2; // Length is bytes
+            if (chars <= 0) return string.Empty;
+            return (lus.Buffer.Length >= chars) ? lus.Buffer.Substring(0, chars) : lus.Buffer;
         }
     }
 }
