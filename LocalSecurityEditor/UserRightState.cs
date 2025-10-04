@@ -8,9 +8,6 @@ namespace LocalSecurityEditor {
     /// <summary>
     /// Describes the metadata associated with a Windows user right (short name, display name and description).
     /// </summary>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public sealed class UserRightDefinition {
         /// <summary>
         /// The user right identifier.
@@ -46,9 +43,6 @@ namespace LocalSecurityEditor {
     /// <summary>
     /// Represents the current assignment state of a user right including the list of principals.
     /// </summary>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public sealed class UserRightState {
         /// <summary>
         /// The user right this state describes.

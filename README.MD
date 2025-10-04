@@ -251,6 +251,8 @@ var svc = await UserRightsAssignment.SeServiceLogonRight.GetAsync("SERVER01", ct
 ```csharp
 // One object per user right, each with Principals[]
 var all = UserRights.Get(); // static Get() overload — local machine
+// stream lazily
+foreach (var ura in new UserRights().EnumerateLazy()) { /* ... */ }
 // or as dictionary keyed by enum
 var byRight = new UserRights().GetByRight(); // instance when batching
 // or keyed by ShortName (e.g., "SeServiceLogonRight")

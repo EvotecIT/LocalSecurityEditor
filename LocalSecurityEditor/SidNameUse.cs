@@ -1,15 +1,10 @@
 using System;
-#if NET5_0_OR_GREATER
-using System.Runtime.Versioning;
-#endif
+ 
 
 namespace LocalSecurityEditor {
     /// <summary>
     /// Mirrors the Windows SID_NAME_USE classification.
     /// </summary>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public enum SidNameUse : int {
         /// <summary>User account.</summary>
         User = 1,

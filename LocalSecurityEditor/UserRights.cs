@@ -12,9 +12,6 @@ namespace LocalSecurityEditor {
     /// <summary>
     /// Object-oriented facade for managing User Rights Assignments.
     /// </summary>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public sealed class UserRights : IDisposable {
         private readonly LsaWrapper _lsa;
         private volatile bool _disposed;
@@ -83,6 +80,17 @@ namespace LocalSecurityEditor {
                 list.Add(GetState(rights[i]));
             }
             return list;
+        }
+
+        /// <summary>
+        /// Lazily enumerates the state for all user rights (one item at a time).
+        /// Helpful when streaming results or when you do not need the full materialized list.
+        /// </summary>
+        public IEnumerable<UserRightState> EnumerateLazy() {
+            var rights = s_allRights;
+            for (int i = 0; i < rights.Length; i++) {
+                yield return GetState(rights[i]);
+            }
         }
 
         // -------- Async convenience APIs (offload blocking LSA calls to the thread pool) --------

@@ -178,6 +178,11 @@ foreach (var ura in all) {
     Console.WriteLine($"{ura.ShortName}: {ura.Count} principals");
 }
 
+// Lazy streaming
+foreach (var ura in new UserRights().EnumerateLazy()) {
+    Console.WriteLine(ura);
+}
+
 // Single right as typed object with principals
 var svc = UserRightsAssignment.SeServiceLogonRight.Get();
 foreach (var p in svc.Principals) {

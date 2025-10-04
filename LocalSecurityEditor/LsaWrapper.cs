@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Runtime.InteropServices;
 #if NET5_0_OR_GREATER
@@ -45,12 +46,11 @@ namespace LocalSecurityEditor {
     /// - LSA calls are blocking; consider calling from background threads (see async wrappers
     ///   on the higher-level UserRights facade) if integrating with UI code.
     /// </remarks>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public sealed class LsaWrapper : IDisposable {
         private readonly ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        // obsolete field removed
+        // Cache for SID -> (domain,name,use) to reduce repeated lookups across calls
+        private struct SidInfo { public string Domain; public string Name; public SidNameUse Use; }
+        private static readonly ConcurrentDictionary<string, SidInfo> s_sidCache = new ConcurrentDictionary<string, SidInfo>(StringComparer.OrdinalIgnoreCase);
 
         [StructLayout(LayoutKind.Sequential)]
         struct LSA_TRUST_INFORMATION {
@@ -345,10 +345,15 @@ namespace LocalSecurityEditor {
                 // Fallback lookup on the target system if unresolved
                 SidNameUse use = (i < lsaNames.Length ? lsaNames[i].Use : SidNameUse.Unknown);
                 if (string.IsNullOrEmpty(user) || use == SidNameUse.Unknown || use == SidNameUse.Invalid) {
-                    if (TryLookupAccountSidRemote(lsaInfo[i].PSid, out string fDomain, out string fUser, out SidNameUse fUse)) {
+                    if (!string.IsNullOrEmpty(sidString) && s_sidCache.TryGetValue(sidString, out var cached)) {
+                        if (!string.IsNullOrEmpty(cached.Name)) user = cached.Name;
+                        if (!string.IsNullOrEmpty(cached.Domain)) domain = cached.Domain;
+                        if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = cached.Use;
+                    } else if (TryLookupAccountSidRemote(lsaInfo[i].PSid, out string fDomain, out string fUser, out SidNameUse fUse)) {
                         if (!string.IsNullOrEmpty(fUser)) user = fUser;
                         if (!string.IsNullOrEmpty(fDomain)) domain = fDomain;
                         if (use == SidNameUse.Unknown || use == SidNameUse.Invalid) use = fUse;
+                        if (!string.IsNullOrEmpty(sidString)) s_sidCache[sidString] = new SidInfo { Domain = fDomain, Name = fUser, Use = fUse };
                     }
                 }
 

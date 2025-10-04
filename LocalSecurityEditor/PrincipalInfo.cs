@@ -8,9 +8,6 @@ namespace LocalSecurityEditor {
     /// <summary>
     /// Represents an account principal with both SID and (optionally) domain-qualified name.
     /// </summary>
-#if NET5_0_OR_GREATER
-    [SupportedOSPlatform("windows")]
-#endif
     public sealed class PrincipalInfo {
         /// <summary>
         /// String representation of the account's SID (e.g. <c>S-1-5-21-...</c>).
