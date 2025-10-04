@@ -4,8 +4,6 @@
 [![NuGet Downloads](https://img.shields.io/nuget/dt/LocalSecurityEditor)](https://www.nuget.org/packages/LocalSecurityEditor)
 ![.NET Framework 4.7.2](https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4)
 ![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4)
-
-Targets: net472, netstandard2.0, net8.0-windows, net9.0-windows.
 ![.NET (Windows) 8.0 | 9.0](https://img.shields.io/badge/.NET%20(Windows)-8.0%20%7C%209.0-512BD4)
 ![Platform Windows-only](https://img.shields.io/badge/Platform-Windows--only-blue)
 
