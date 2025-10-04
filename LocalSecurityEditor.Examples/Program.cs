@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Principal;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 using LocalSecurityEditor;
@@ -18,6 +19,9 @@ namespace TestApp {
             // Example1();
             // Example2_ExternalComputer();
             ExampleCoversion();
+
+            // Async examples (runs synchronously here for cross-TFM support)
+            Example_UserRightsApi_Async().GetAwaiter().GetResult();
         }
 
         private static void Example_UserRightsApi_Local() {
@@ -43,6 +47,25 @@ namespace TestApp {
                 var result = ur.Set(UserRightsAssignment.SeDenyRemoteInteractiveLogonRight,
                     new [] { @"DOMAIN\\contractor1", @"DOMAIN\\contractor2" });
                 Console.WriteLine(result);
+            }
+        }
+
+        private static async Task Example_UserRightsApi_Async() {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            try {
+                // Query single right asynchronously (local)
+                var svc = await new UserRights().GetStateAsync(UserRightsAssignment.SeServiceLogonRight, cts.Token);
+                Console.WriteLine($"Async: {svc.ShortName} -> {svc.Count} principals");
+
+                // Enumerate all rights asynchronously (local)
+                var all = await new UserRights().EnumerateAsync(cts.Token);
+                Console.WriteLine($"Async: Enumerated {all.Count} rights");
+
+                // Fluent async extension (remote)
+                // var remoteSvc = await UserRightsAssignment.SeBatchLogonRight.GetAsync("SERVER01", cts.Token);
+                // Console.WriteLine($"Remote async: {remoteSvc.ShortName} -> {remoteSvc.Count} principals");
+            } finally {
+                cts.Dispose();
             }
         }
 

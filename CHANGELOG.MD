@@ -1,5 +1,15 @@
 ﻿#### LocalSecurityEditor Release History
 
+#### Unreleased
+- Target frameworks: add `net9.0-windows`, keep `net8.0-windows`, `netstandard2.0`; restore `net472` for classic .NET. Dropped obsolete TFMs.
+- Strict policy handling restored: `LsaOpenPolicy` uses `POLICY_ALL_ACCESS` and enumeration throws `UnauthorizedAccessException` on `ACCESS_DENIED` (empty only for `NO_MORE_ENTRIES`).
+- Added async APIs: `GetStateAsync`, `EnumerateAsync`, `GetByRightAsync`, `GetByShortNameAsync`, `AddAsync`, `RemoveAsync`, `SetAsync` and async extension helpers.
+- Performance: cache enum values for `Enumerate`/`GetByRight`/`GetByShortName` to avoid repeated allocations.
+- Naming: `Win32SecurityIdentifier.securityIdentifier` → `SecurityIdentifier` (PascalCase).
+- Thread-safety: mark dispose flags as `volatile` in `UserRights` and `Win32SecurityIdentifier`.
+- Docs: extensive XML documentation for public APIs; README and Assets README updated (targets badge, OO API prominence, async usage, batching tip).
+- Tests: add coverage for `PrincipalInfo.ToString()` and `Win32SecurityIdentifier` pinning (Windows-gated).
+
 #### 0.4.0
 - Add `Net 8.0` support
 - Add `Net 7.0` support
