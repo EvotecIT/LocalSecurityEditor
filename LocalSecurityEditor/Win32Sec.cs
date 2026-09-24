@@ -86,7 +86,8 @@ namespace LocalSecurityEditor {
         [DllImport("advapi32")]
         internal static extern int LsaFreeMemory(IntPtr Buffer);
 
-        [DllImport("advapi32.dll", SetLastError = true)]
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, EntryPoint = "ConvertSidToStringSidW", ExactSpelling = true, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool ConvertSidToStringSid(IntPtr Sid, out IntPtr StringSid);
 
         [DllImport("kernel32.dll", SetLastError = true)]

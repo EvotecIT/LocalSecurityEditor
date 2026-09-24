@@ -4,7 +4,7 @@
 		<Description>.NET library for managing User Rights Assignment on Windows systems. It replicates the functionality of secedit.exe</Description>
 		<AssemblyName>LocalSecurityEditor</AssemblyName>
 		<AssemblyTitle>LocalSecurityEditor</AssemblyTitle>
-		<VersionPrefix>1.0.0</VersionPrefix>
+		<VersionPrefix>1.0.1</VersionPrefix>
 
 		<!--
 		  This library is Windows-only by design. Target modern TFMs with
@@ -39,7 +39,7 @@
 		<RepositoryType>git</RepositoryType>
 		<SignAssembly>False</SignAssembly>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<PackageReleaseNotes>TFMs: net472, net8.0-windows, net9.0-windows, netstandard2.0. Added extensive XML docs. Fixed CA1416 warnings and license metadata.</PackageReleaseNotes>
+		<PackageReleaseNotes>Fix SID string conversion by binding the Unicode Windows API explicitly, preventing corrupted principal identifiers during user-right assignment reads.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
